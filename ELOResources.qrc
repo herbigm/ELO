@@ -14,5 +14,13 @@
         <file>icons/folder-delete.svg</file>
         <file>icons/folder-new.svg</file>
         <file>icons/rename.svg</file>
+        <file>icons/insert-link.svg</file>
+        <file>icons/document-open.svg</file>
+        <file>icons/insert-image.svg</file>
+        <file>icons/list-add.svg</file>
+        <file>icons/list-remove.svg</file>
+        <file>icons/user-others.svg</file>
+        <file>icons/document-decrypt.svg</file>
+        <file>icons/preferences-system-startup.svg</file>
     </qresource>
 </RCC>

@@ -1,10 +1,12 @@
 #include "elodocument.h"
 
+#include <QWebEngineSettings>
+#include "elosettings.h"
 
 ELODocument::ELODocument(const QString &filePath)
 {
     fileInfo = QFileInfo(filePath);
-    title = fileInfo.fileName().left(fileInfo.fileName().length()-5);
+    fileTitle = fileInfo.fileName().left(fileInfo.fileName().length()-5);
     // read file
     QFile file(filePath);
     if (file.open(QFile::ReadOnly)) {
@@ -16,14 +18,22 @@ ELODocument::ELODocument(const QString &filePath)
         metaData = jdoc.object();
     }
 
+    // create QWebEngineProfile and change settings
+    QWebEngineProfile *profile = QWebEngineProfile::defaultProfile();
+    profile->settings()->setUnknownUrlSchemePolicy(QWebEngineSettings::AllowAllUnknownUrlSchemes);
+    profile->settings()->setAttribute(QWebEngineSettings::JavascriptCanOpenWindows, true);
+    profile->settings()->setAttribute(QWebEngineSettings::LocalContentCanAccessRemoteUrls, true);
+
     // create webView
-    webView = new ELOWebView();
-    webPage = new ELOWebPage(QWebEngineProfile::defaultProfile(), webView);
+    webView = new QWebEngineView();
+    webPage = new ELOWebPage(profile, webView);
+    webView->setPage(webPage);
 
     QFile experimentFile(fileInfo.filePath());
     experimentFile.open(QIODevice::ReadOnly);
     QString experimentHTML = experimentFile.readAll();
     experimentFile.close();
+    experimentHTML = experimentHTML.replace("internal:", "internal/");
 
     QFile editorHTMLFile(QCoreApplication::applicationDirPath() + QDir::separator() + "ckeditor5" + QDir::separator() + "index.html");
     editorHTMLFile.open(QIODevice::ReadOnly);
@@ -35,13 +45,17 @@ ELODocument::ELODocument(const QString &filePath)
     QString css = cssFile.readAll();
     cssFile.close();
 
+    if (metaData.contains("template")) {
+        QString templateName = metaData.value("template").toString();
+        templateName = templateName.left(templateName.length()-6);
+        QFile cssFile2(TheELOSettings::Instance()->getWorkingDir() + QDir::separator() + "ELOtemplates" + QDir::separator() + templateName + ".css");
+        cssFile2.open(QIODevice::ReadOnly);
+        css += "\n" + cssFile2.readAll();
+        cssFile2.close();
+    }
+
     webView->page()->setHtml(editorHTML.replace("{{Style}}", css).replace("{{CONTENT}}", experimentHTML), QUrl::fromLocalFile(fileInfo.filePath()));
-    connect(webView, &ELOWebView::loadFinished, this, &ELODocument::loadJS);
-    //webView->page()->runJavaScript(ckeditorJS1 + "\n" + ckeditorJS2);
-    //webView->page()->runJavaScript(ckeditorJS2);
-    //webView->setUrl(QUrl::fromLocalFile(fileInfo.filePath()));
-    //webView->page()->runJavaScript("getEditorData();", [this](const QVariant &v) { qDebug()<<v.toString();});
-    //webView->page()->runJavaScript("function hi() {return  \"Hallo\";} hi();", [this](const QVariant &v) { qDebug()<<v.toString();});
+    connect(webView, &QWebEngineView::loadFinished, this, &ELODocument::loadJS);
 }
 
 void ELODocument::loadJS(bool ok)

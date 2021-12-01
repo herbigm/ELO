@@ -16,7 +16,7 @@ class ELOSettings : public QObject
 {
     Q_OBJECT
 public:
-    // ELOSettings is an Singleton!
+    // ELOSettings is a Singleton!
     static ELOSettings* Instance() {
         if (m_Instance == nullptr) {
             m_Instance = new ELOSettings();
@@ -92,7 +92,7 @@ private:
     QString lastOpenDir;
     QVector<PathShortcut> PathShortcuts;
 
-    static ELOSettings *m_Instance; // ELOSettings is an Singleton!
+    static ELOSettings *m_Instance; // ELOSettings is a Singleton!
     void savePathShortcuts();
 
 signals:

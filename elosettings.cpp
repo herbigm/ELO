@@ -1,6 +1,6 @@
 #include "elosettings.h"
 
-ELOSettings *ELOSettings::m_Instance = nullptr; // ELOSettings is an Singleton!
+ELOSettings *ELOSettings::m_Instance = nullptr; // ELOSettings is a Singleton!
 
 ELOSettings::ELOSettings()
 {

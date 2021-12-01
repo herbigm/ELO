@@ -5,7 +5,6 @@
 #include <QFileInfo>
 #include <QJsonObject>
 
-#include "elowebview.h"
 #include "elodocument.h"
 #include "elosettings.h"
 
@@ -25,14 +24,17 @@ public:
     explicit ELODocumentHandler(QObject *parent = nullptr);
     ~ELODocumentHandler();
 
-    ELOWebView *openFile(const QString &filePath);
+    QWebEngineView *openFile(const QString &filePath);
     void requestClosingCurrentDocument();
 
     // getter functions
     const QString &getCurrentTitle() const;
 
     // setter functions
-    void setCurrentDocument(ELOWebView *widget);
+    void setCurrentDocument(QWebEngineView *widget);
+
+    QString copyToAssociatedFiles(const QString &path);
+    void insertImage(const QString &path);
 
 
 public slots:
@@ -43,6 +45,8 @@ public slots:
     void startFileCreation(const QString &parentPath);
     void saveCurrentDocument();
     void closeAllDocuments();
+    void performOpenFileRequest(const QUrl &url);
+    void insertLink(const QString &text, const QString &url);
 
 private:
     ELOSettings *settings;
@@ -58,10 +62,11 @@ private:
     void closeCurrentDocument();
 
 signals:
-    void documentTitleChanged(ELOWebView *, const QString);
+    void documentTitleChanged(QWebEngineView *, const QString);
     void currentMetadataChanged(const QJsonObject);
+    void currentFileChanged(const QString &repo, const QString &fileName);
     void askForMetadataForNewFile(const QJsonObject);
-    void newFileCreatedView(ELOWebView *);
+    void newFileCreatedView(QWebEngineView *);
     void newFileCreatedModel(const QString);
     void allClosed();
 

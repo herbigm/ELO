@@ -48,7 +48,7 @@ ELOMetadataDialog::ELOMetadataDialog(QWidget *parent):
     layout1->addWidget(button);
 
     mainLayout->addRow(new QLabel(tr("Author: ")), authorEdit);
-    mainLayout->addRow(new QLabel(tr("experiment number:")), experimentNumberEdit);
+    mainLayout->addRow(new QLabel(tr("Experiment number:")), experimentNumberEdit);
     mainLayout->addRow(new QLabel(tr("Title: ")), titleEdit);
     mainLayout->addRow(new QLabel(tr("Date: ")), dateEdit);
     mainLayout->addRow(new QLabel(tr("Description: ")), descriptionEdit);
@@ -120,8 +120,9 @@ void ELOMetadataDialog::reject()
 
 void ELOMetadataDialog::openTemplate()
 {
-    QString dgl = QFileDialog::getOpenFileName(this, tr("open template"), settings->getWorkingDir() + QDir::separator() + "templates", tr("Templates (*.tmplt)"));
+    QString dgl = QFileDialog::getOpenFileName(this, tr("open template"), settings->getWorkingDir() + QDir::separator() + "ELOtemplates", tr("Templates (*.tmplt)"));
     if(!dgl.isEmpty()) {
+        dgl = dgl.remove(settings->getWorkingDir() + QDir::separator() + "ELOtemplates" + QDir::separator());
         templateLabel->setText(dgl);
     }
 }

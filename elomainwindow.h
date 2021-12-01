@@ -5,13 +5,19 @@
 #include <QWebEngineProfile>
 #include <QDockWidget>
 #include <QSettings>
+#include <QToolBar>
+#include <QWebEngineView>
+#include <QActionGroup>
 
-#include "elotabwidget.h"
 #include "elosettingsdialog.h"
 #include "elosettings.h"
 #include "elometadatadialog.h"
 #include "elofileview.h"
 #include "elodocumenthandler.h"
+#include "elolinkdialog.h"
+#include "eloassociatedfileview.h"
+#include "elouser.h"
+#include "elogitprocess.h"
 
 class ELOMainWindow : public QMainWindow
 {
@@ -26,9 +32,10 @@ protected:
 
 private slots:
      void startNewFile(const QJsonObject obj);
-     void openNewCreatedFile(ELOWebView *view);
+     void openNewCreatedFile(QWebEngineView *view);
      void saveCurrentFile();
      void allClosed();
+     void openImage();
 
 private:
     void createWidgets();
@@ -42,25 +49,39 @@ private:
 
     void selectCurrentDocument(int tabIndex);
     void closeTab(int tabIndex);
-    void renameTab(ELOWebView *view, const QString &newTitle);
+    void renameTab(QWebEngineView *view, const QString &newTitle);
+
+    void loadUser(QString fileName);
+    void loadNewUser();
+    void loadRecentUser(QAction *a);
+    void userLoaded(bool success);
+    void changePassword();
 
 
     // widgets
-    ELOTabWidget *tabWidget;
+    QTabWidget *tabWidget;
     QDockWidget *calculatorDock;
     QDockWidget *fileDock;
+    QDockWidget *associatedFileDock;
 
     ELOFileView *fileView;
+    ELOAssociatedFileView *associatedFileView;
 
     ELOSettingsDialog *settingsDialog;
     ELOMetadataDialog *metadataDialog;
+    ELOLinkDialog *linkDialog;
+    ELOGitProcess *gitCom;
+
+    QToolBar *mainToolBar;
 
     // actions and menus
     QMenu *m_fileMenu;
     QAction *actionUpsync;
     QAction *actionChangePassword;
     QAction *actionLoadUser;
+    QActionGroup *recentUserGroup;
     QAction *actionExit;
+    QAction *actionShowProcess;
 
     QMenu *m_experimentMenu;
     QAction *actionMetadata;
@@ -69,6 +90,8 @@ private:
     QAction *actionPrint;
     QAction *actionPrintToPDF;
     QAction *actionAddComment;
+    QAction *actionAddLink;
+    QAction *actionInsertImage;
 
     QMenu *m_settingsMenu;
     QAction *actionSettings;
@@ -93,6 +116,9 @@ private:
 
     // documentHandler
     ELODocumentHandler *documentHandler;
+
+    // user
+    ELOUser *user;
 
 signals:
     void setClose(bool b);

@@ -2,6 +2,8 @@
 
 #include <QDesktopServices>
 #include <QMessageBox>
+#include <QPushButton>
+#include <QMimeDatabase>
 
 ELODocumentHandler::ELODocumentHandler(QObject *parent) : QObject(parent)
 {
@@ -11,7 +13,7 @@ ELODocumentHandler::ELODocumentHandler(QObject *parent) : QObject(parent)
     closeAll = false;
 }
 
-ELOWebView *ELODocumentHandler::openFile(const QString &filePath)
+QWebEngineView *ELODocumentHandler::openFile(const QString &filePath)
 {
     QFileInfo finfo(filePath);
     if (!finfo.exists()) {
@@ -20,8 +22,34 @@ ELOWebView *ELODocumentHandler::openFile(const QString &filePath)
     }
     // test, if file is an experiment file
     if (!isExperimentFile(filePath)) {
-        // open the file with system defaults
-        QDesktopServices::openUrl(QUrl::fromLocalFile(filePath));
+        // maybe it's an image?!
+        QMimeDatabase mimeDB;
+        QMimeType mime = mimeDB.mimeTypeForFile(filePath);
+
+        // ask what to do with the file
+        QMessageBox msgBox;
+        msgBox.setText(tr("The selected file is not an experiment file. What do you like to do?"));
+        msgBox.setIcon(QMessageBox::Question);
+        QPushButton *openButton = msgBox.addButton(tr("Open File"), QMessageBox::ActionRole);
+        QPushButton *insertLinkButton = msgBox.addButton(tr("Insert Link to this File"), QMessageBox::ActionRole);
+        QPushButton *insertImageButton = msgBox.addButton(tr("Insert File as Image"), QMessageBox::ActionRole);
+        insertImageButton->setEnabled(false);
+        if(mime.preferredSuffix() == "jpeg" || mime.preferredSuffix() == "jpg" || mime.preferredSuffix() == "gif" || mime.preferredSuffix() == "png" || mime.preferredSuffix() == "svg") {
+            insertImageButton->setEnabled(true);
+        }
+        QPushButton *abortButton = msgBox.addButton(QMessageBox::Abort);
+        msgBox.setDefaultButton(abortButton);
+
+        msgBox.exec();
+
+        if (msgBox.clickedButton() == openButton) {
+            // open the file with system defaults
+            QDesktopServices::openUrl(QUrl::fromLocalFile(filePath));
+        } else if (msgBox.clickedButton() == insertLinkButton) {
+            insertLink(finfo.fileName(), currentDocument->getFileInfo().dir().relativeFilePath(filePath));
+        } else if (msgBox.clickedButton() == insertImageButton) {
+            insertImage(finfo.filePath());
+        }
         return nullptr;
     }
 
@@ -50,10 +78,9 @@ ELOWebView *ELODocumentHandler::openFile(const QString &filePath)
     doc->setRepoName(repoName);
     documents.append(doc);
     currentDocument = doc; // the new document is the current document
+    connect(doc->getWebPage(), &ELOWebPage::openFileRequest, this, &ELODocumentHandler::performOpenFileRequest);
 
     return doc->getWebView(); // return the webview
-
-    return nullptr;
 }
 
 ELODocumentHandler::~ELODocumentHandler()
@@ -61,17 +88,47 @@ ELODocumentHandler::~ELODocumentHandler()
     qDeleteAll(documents);
 }
 
-void ELODocumentHandler::setCurrentDocument(ELOWebView *widget)
+void ELODocumentHandler::setCurrentDocument(QWebEngineView *widget)
 {
     for (int i = 0; i < documents.length(); i++) {
         if (documents[i]->getWebView() == widget) {
             // this is the current document
             currentDocument = documents[i];
             emit currentMetadataChanged(currentDocument->getMetaData());
+            emit currentFileChanged(currentDocument->getRepoName(), currentDocument->getFileTitle());
             return;
         }
     }
     emit currentMetadataChanged(QJsonObject());
+}
+
+QString ELODocumentHandler::copyToAssociatedFiles(const QString &path)
+{
+    // get the right directory name
+    QDir dir(settings->getWorkingDir() + QDir::separator() + currentDocument->getRepoName() + QDir::separator() + ".AssociatedFiles" + QDir::separator() + currentDocument->getFileTitle());
+    if(!dir.exists()) {
+        dir.mkpath(dir.path());
+    }
+
+    // copy file into directory
+    QFile oldFile(path);
+    QFileInfo finfo(oldFile);
+    QFileInfo toSaveFile(dir.path() + QDir::separator() + finfo.fileName());
+    int i = 1;
+    while(toSaveFile.exists()) {
+        toSaveFile.setFile(toSaveFile.filePath() + QDir::separator() + QChar(i) + "_" + finfo.fileName());
+        i++;
+    }
+    oldFile.copy(toSaveFile.filePath());
+    return toSaveFile.filePath();
+}
+
+void ELODocumentHandler::insertImage(const QString &path)
+{
+    if (currentDocument) {
+        QString relativePath = currentDocument->getFileInfo().dir().relativeFilePath(path);
+        currentDocument->getWebPage()->runJavaScript("editor.execute( 'insertImage', { source: '" + relativePath + "' } );");
+    }
 }
 
 void ELODocumentHandler::setCurrentDirectory(const QString &path)
@@ -94,7 +151,7 @@ void ELODocumentHandler::performRenaming(const QString &oldpath, const QString &
             // path has to be changed
             documents[i]->updateFileInfoPath(finfo.filePath().replace(oldpath, newpath));
             if (newFinfo.isFile()) {
-                emit documentTitleChanged(documents[i]->getWebView(), documents[i]->getTitle());
+                emit documentTitleChanged(documents[i]->getWebView(), documents[i]->getFileTitle());
             }
         }
     }
@@ -120,7 +177,20 @@ void ELODocumentHandler::updateMetadata(const QJsonObject obj)
         QFile newFile(path);
         QFileInfo finfo(newFile);
         newFile.open(QIODevice::WriteOnly);
-        newFile.write("<!-- {} -->\n<html></html>"); // TODO: insert template here
+        QString templateName = obj.value("template").toString();
+        if (!templateName.isEmpty()) {
+            templateName = templateName.left(templateName.length()-6);
+            QFile templateHTML(TheELOSettings::Instance()->getWorkingDir() + QDir::separator() + "ELOtemplates" + QDir::separator() + templateName + ".html");
+            templateHTML.open(QIODevice::ReadOnly);
+            QString tmplt = templateHTML.readAll();
+            templateHTML.close();
+            tmplt = tmplt.replace("{{experiment number}}", obj.value("experiment number").toString());
+            tmplt = tmplt.replace("{{date}}", obj.value("date").toString());
+            tmplt = tmplt.replace("{{title}}", obj.value("title").toString());
+            newFile.write(tmplt.toUtf8());
+        } else {
+            newFile.write("<!-- {} -->\n<html></html>");
+        }
         newFile.close();
         ELODocument *doc = new ELODocument(path);
         doc->setMetadata(obj);
@@ -168,7 +238,7 @@ void ELODocumentHandler::saveCurrentDocument()
 
 const QString &ELODocumentHandler::getCurrentTitle() const
 {
-    return currentDocument->getTitle();
+    return currentDocument->getFileTitle();
 }
 
 bool ELODocumentHandler::isExperimentFile(const QString &filePath)
@@ -193,7 +263,7 @@ void ELODocumentHandler::saveAndCloseCurrentDocument(bool modified)
     if (!modified) {
         closeCurrentDocument();
     } else {
-        QMessageBox::StandardButton btn = QMessageBox::question(nullptr, tr("Save modified file?"), tr("The file was modified. Do you like to save the modificated file?"));
+        QMessageBox::StandardButton btn = QMessageBox::question(nullptr, tr("Save modified file?"), tr(QString("The file %1 was modified. Do you like to save the modificated file?").arg(currentDocument->getFileTitle()).toUtf8()));
         if (btn == QMessageBox::Yes) {
             connect(currentDocument, &ELODocument::wasSaved, this, &ELODocumentHandler::closeCurrentDocument);
             currentDocument->startSaveing();
@@ -227,4 +297,27 @@ void ELODocumentHandler::closeAllDocuments()
 {
     closeAll = true;
     requestClosingCurrentDocument();
+}
+
+void ELODocumentHandler::performOpenFileRequest(const QUrl &url)
+{
+    qDebug() << "file request for" << url;
+    if (isExperimentFile(url.toString())) {
+        openFile(url.toString());
+    } else {
+        QDesktopServices::openUrl(url);
+    }
+}
+
+void ELODocumentHandler::insertLink(const QString &text, const QString &url)
+{
+    if (currentDocument) {
+        QString newUrl;
+        if (!url.startsWith("http")) {
+            newUrl = currentDocument->getFileInfo().dir().relativeFilePath(url);
+        } else {
+            newUrl = url;
+        }
+        currentDocument->getWebPage()->runJavaScript("editor.model.change( writer => { const insertPosition = editor.model.document.selection.getFirstPosition(); writer.insertText( '" + text + "', { linkHref: '" + newUrl + "' }, insertPosition ); } );");
+    }
 }

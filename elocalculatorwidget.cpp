@@ -6,6 +6,11 @@
 #include <QDebug>
 #include <QLocale>
 
+#ifdef  _WIN32
+    #include <locale.h>
+#endif
+
+
 Token::Token(char token, char prec, double val, bool operation){
     tok = (ExpressionToken)token;
     precedence = prec;
@@ -48,7 +53,11 @@ std::vector<token_t *> *ELOcalculatorWidget::tokExpr(char *buffer)
     while (*cursor) {
         switch (*cursor) {
             case ' ': cursor++; continue;
+#ifdef  _WIN32
+            case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
+#else
             case '0' ... '9':
+#endif
                 stream->push_back(new token_t((char)LITERAL, (char)0, strtod(cursor, &cursor), op));
                 continue;
             case '(': [[fallthrough]];
@@ -102,8 +111,8 @@ std::vector<token_t*>* ELOcalculatorWidget::infix2rpn(std::vector<token_t*> *Tok
     for (i = 0; i < n; i++) {
         temp = (*TokenStream)[i];
         temptok = temp->tok;
-        if (__glibc_unlikely(temptok == '-')) {
-            if (__glibc_likely(i)) {
+        if (temptok == '-') {
+            if (i) {
                 prev = (*TokenStream)[i-1];
                 if (prev->op || prev->tok == LPAR) {
                     temp->tok = NEG;
@@ -120,9 +129,9 @@ std::vector<token_t*>* ELOcalculatorWidget::infix2rpn(std::vector<token_t*> *Tok
             continue;
         }
 
-        if (__glibc_likely(temp->op)) {
+        if (temp->op) {
 
-            if (__glibc_unlikely(Operators.empty())) {
+            if (Operators.empty()) {
                 Operators.push(temp);
                 continue;
             }
@@ -221,7 +230,7 @@ double ELOcalculatorWidget::executeExpr(std::vector<token_t*>* in) {
             continue;
         }
 
-        if (__glibc_likely(it->op)) {
+        if (it->op) {
             if (OutputStack.empty()) {
                 listWidget->addItem(tr("Error in equation. "));
                 return 0;

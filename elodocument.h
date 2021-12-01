@@ -9,8 +9,8 @@
 #include <QWebEngineProfile>
 #include <QDir>
 #include <QCoreApplication>
+#include <QWebEngineView>
 
-#include "elowebview.h"
 #include "elowebpage.h"
 
 class ELODocument: public QObject
@@ -27,15 +27,16 @@ public:
     void loadJS(bool ok);
 
     const QString &getRepoName() const { return repoName; }
-    const QString &getTitle() const { return title; }
+    const QString &getFileTitle() const { return fileTitle; }
     const QFileInfo &getFileInfo() const { return fileInfo; }
     QJsonObject getMetaData() { return metaData; }
-    ELOWebView *getWebView() { return webView; }
+    QWebEngineView *getWebView() { return webView; }
+    ELOWebPage *getWebPage() { return webPage; }
 
     inline void setRepoName(const QString &newRepoName) { repoName = newRepoName; }
     inline void updateFileInfoPath(const QString &newPath) {
         fileInfo.setFile(newPath);
-        title = fileInfo.fileName().left(fileInfo.fileName().length()-5);
+        fileTitle = fileInfo.fileName().left(fileInfo.fileName().length()-5);
     }
     inline void setMetadata(const QJsonObject obj) { metaData = obj; }
     void startSaveing();
@@ -44,9 +45,9 @@ public:
 
 private:
     QString repoName;
-    QString title;
+    QString fileTitle;
     QFileInfo fileInfo;
-    ELOWebView *webView;
+    QWebEngineView *webView;
     ELOWebPage *webPage;
     QJsonObject metaData;
     QString lastSavedContent;

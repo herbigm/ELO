@@ -20,11 +20,7 @@ set(PROJECT_SOURCES
         main.cpp
         elomainwindow.cpp
         elomainwindow.h
-        elotabwidget.h
-        elotabwidget.cpp
         ELOResources.qrc
-        elowebview.h
-        elowebview.cpp
         elowebpage.h
         elowebpage.cpp
         elocalculatorwidget.h
@@ -43,6 +39,17 @@ set(PROJECT_SOURCES
         elodocumenthandler.cpp
         elodocument.h
         elodocument.cpp
+        elolinkdialog.h
+        elolinkdialog.cpp
+        eloassociatedfileview.h
+        eloassociatedfileview.cpp
+        elouser.h
+        elouser.cpp
+        qblowfish_p.h
+        qblowfish.h
+        qblowfish.cpp
+        elogitprocess.h
+        elogitprocess.cpp
         ${TS_FILES}
 )
 
@@ -73,7 +80,7 @@ else()
     qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 endif()
 
-target_link_libraries(ELO-NG PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::WebEngineWidgets)
+target_link_libraries(ELO-NG PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::WebEngineWidgets ssh2)
 
 set_target_properties(ELO-NG PROPERTIES
     MACOSX_BUNDLE_GUI_IDENTIFIER my.example.com
