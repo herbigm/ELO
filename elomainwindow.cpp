@@ -15,7 +15,8 @@ ELOMainWindow::ELOMainWindow(QWidget *parent)
     settings = TheELOSettings::Instance();
     user = ELOUser::Instance();
     documentHandler = new ELODocumentHandler();
-    gitCom = new ELOGitProcess(this);
+    gitCom = new ELOGitProcess();
+    repoSettingsDialog = new ELORepoSettingsDialog(this);
 
     // create main widgets
     tabWidget = new QTabWidget(this);
@@ -51,6 +52,9 @@ void ELOMainWindow::closeEvent(QCloseEvent *event)
         documentHandler->closeAllDocuments();
         event->ignore();
     } else {
+        // commit and try to push
+        upsync();
+        emit setClose(true);
         event->accept();
         QMainWindow::closeEvent(event);
     }
@@ -62,7 +66,7 @@ void ELOMainWindow::startNewFile(const QJsonObject obj)
     metadataDialog->show();
 }
 
-void ELOMainWindow::openNewCreatedFile(QWebEngineView *view)
+void ELOMainWindow::openNewCreatedFile(ELOWebView *view)
 {
     tabWidget->addTab(view, documentHandler->getCurrentTitle());
     tabWidget->setCurrentWidget(view);
@@ -73,9 +77,11 @@ void ELOMainWindow::createWidgets()
     setStatusBar(new QStatusBar());
     mainToolBar = addToolBar(tr("Main tool bar"));
     mainToolBar->setObjectName("mainToolBar");
+    mainToolBar->addAction(actionNewFile);
     mainToolBar->addAction(actionSaveFile);
     mainToolBar->addAction(actionAddLink);
     mainToolBar->addAction(actionInsertImage);
+    mainToolBar->addAction(actionPrintPDF);
 
     calculatorDock = new QDockWidget(tr("Calculator"), this);
     calculatorDock->setWidget(new ELOcalculatorWidget(calculatorDock));
@@ -85,7 +91,6 @@ void ELOMainWindow::createWidgets()
     fileDock = new QDockWidget(tr("Files"), this);
     fileDock->setWidget(fileView);
     fileDock->setObjectName("fileDock");
-    fileView->addView("Hallo", "/home/marcus/ELO/Marcus_Herbig");
 
     associatedFileView = new ELOAssociatedFileView(this);
     associatedFileDock = new QDockWidget(tr("Associated Files"), this);
@@ -99,23 +104,6 @@ void ELOMainWindow::createWidgets()
 
 void ELOMainWindow::createActions()
 {
-    /*actionUpsync;
-    actionChangePassword;
-    actionLoadUser;
-    actionExit;
-
-    actionPrintPreview;
-    actionPrint;
-    actionPrintToPDF;
-    actionAddComment;
-
-    actionRepoOptions;
-    actionSpellCheck;
-    actionShowComments;
-
-    actionDatabaseChemicals;
-    actionDatabaseDevice;*/
-
     const QIcon showDockIcon = QIcon::fromTheme("dashboard-show", QIcon(":icons/icons/showDashBoard.svg"));
     actionShowCalculator = new QAction(showDockIcon, tr("Show calculator"), this);
     actionShowCalculator->setCheckable(true);
@@ -128,7 +116,6 @@ void ELOMainWindow::createActions()
 
     const QIcon showProcessIcon = QIcon::fromTheme("preferences-system-startup", QIcon(":icons/icons/preferences-system-startup.svg"));
     actionShowProcess = new QAction(showProcessIcon, tr("show git process"), this);
-    actionShowProcess->setCheckable(true);
 
     const QIcon aboutIcon = QIcon::fromTheme("help-about", QIcon(":icons/icons/info.svg"));
     actionAbout = new QAction(aboutIcon, tr("About this program"), this);
@@ -138,6 +125,7 @@ void ELOMainWindow::createActions()
 
     const QIcon configureIcon = QIcon::fromTheme("configure", QIcon(":icons/icons/configure.svg"));
     actionSettings = new QAction(configureIcon, tr("Settings"), this);
+    actionRepoSettings = new QAction(configureIcon, tr("Repositorium settings"), this);
 
     const QIcon metadataIcon = QIcon::fromTheme("description", QIcon(":icons/icons/description.svg"));
     actionMetadata = new QAction(metadataIcon, tr("View metadata"), this);
@@ -161,6 +149,21 @@ void ELOMainWindow::createActions()
     const QIcon changePasswordIcon = QIcon::fromTheme("document-decrypt", QIcon(":icons/icons/document-decrypt.svg"));
     actionChangePassword = new QAction(changePasswordIcon, tr("change password"), this);
     actionChangePassword->setEnabled(false);
+
+    const QIcon newFileIcon = QIcon::fromTheme("document-new", QIcon(":icons/icons/document-new.svg"));
+    actionNewFile = new QAction(newFileIcon, tr("New File"), this);
+    actionNewFile->setEnabled(false);
+
+    const QIcon upsyncIcon = QIcon::fromTheme("upload-media", QIcon(":icons/icons/upload-media.svg"));
+    actionUpsync = new QAction(upsyncIcon, tr("Upsync"), this);
+    actionUpsync->setEnabled(false);
+
+    const QIcon logoutIcon = QIcon::fromTheme("im-kick-user", QIcon(":icons/icons/im-kick-user.svg"));
+    actionLogout = new QAction(logoutIcon, tr("Logout"), this);
+    actionLogout->setEnabled(false);
+
+    const QIcon pdfIcon = QIcon::fromTheme("application-pdf", QIcon(":icons/icons/application-pdf.svg"));
+    actionPrintPDF = new QAction(pdfIcon, tr("Print to PDF"), this);
 }
 
 void ELOMainWindow::createMenus()
@@ -179,18 +182,23 @@ void ELOMainWindow::createMenus()
         m_fileMenu->addActions(recentUserGroup->actions());
     }
     m_fileMenu->addAction(actionChangePassword);
+    m_fileMenu->addAction(actionUpsync);
+    m_fileMenu->addAction(actionLogout);
     m_fileMenu->addAction(actionShowProcess);
     m_fileMenu->addSeparator();
     m_fileMenu->addAction(actionExit);
 
     m_experimentMenu = menuBar()->addMenu(tr("Experiment"));
+    m_experimentMenu->addAction(actionNewFile);
     m_experimentMenu->addAction(actionMetadata);
     m_experimentMenu->addAction(actionSaveFile);
     m_experimentMenu->addAction(actionAddLink);
     m_experimentMenu->addAction(actionInsertImage);
+    m_experimentMenu->addAction(actionPrintPDF);
 
     m_settingsMenu = menuBar()->addMenu(tr("Settings"));
     m_settingsMenu->addAction(actionSettings);
+    m_settingsMenu->addAction(actionRepoSettings);
     m_settingsMenu->addSeparator();
     m_settingsMenu->addAction(actionShowCalculator);
     m_settingsMenu->addAction(actionShowFileTree);
@@ -220,6 +228,7 @@ void ELOMainWindow::connectActions()
     connect(actionAboutQt, &QAction::triggered, this, [this](){ QMessageBox::aboutQt(this, tr("About Qt")); });
 
     connect(actionSettings, &QAction::triggered, settingsDialog, &QDialog::show);
+    connect(actionRepoSettings, &QAction::triggered, repoSettingsDialog, &QDialog::show);
     connect(actionMetadata, &QAction::triggered, metadataDialog, &QDialog::show);
 
     connect(actionExit, &QAction::triggered, this, &ELOMainWindow::closeNow);
@@ -230,6 +239,12 @@ void ELOMainWindow::connectActions()
 
     connect(actionLoadUser, &QAction::triggered, this, &ELOMainWindow::loadNewUser);
     connect(actionChangePassword, &QAction::triggered, this, &ELOMainWindow::changePassword);
+
+    connect(actionNewFile, &QAction::triggered, this, [=](bool b) {documentHandler->startFileCreation();});
+
+    connect(actionUpsync, &QAction::triggered, this, &ELOMainWindow::upsync);
+    connect(actionLogout, &QAction::triggered, this, &ELOMainWindow::logoutUser);
+    connect(actionPrintPDF, &QAction::triggered, this, &ELOMainWindow::printToPDF);
 }
 
 void ELOMainWindow::connectOther()
@@ -252,6 +267,14 @@ void ELOMainWindow::connectOther()
     connect(associatedFileView, &ELOAssociatedFileView::insertLinkRequest, documentHandler, &ELODocumentHandler::insertLink);
     connect(associatedFileView, &ELOAssociatedFileView::insertImageRequest, documentHandler, &ELODocumentHandler::insertImage);
     connect(user, &ELOUser::userLoaded, this, &ELOMainWindow::userLoaded);
+    connect(documentHandler, &ELODocumentHandler::repoPermissionsChanged, this, &ELOMainWindow::applyRepoPermissions);
+    connect(documentHandler, &ELODocumentHandler::filePermissionsChanged, this, &ELOMainWindow::applyFilePermissions);
+    connect(documentHandler, &ELODocumentHandler::openExperimentRequest, this, &ELOMainWindow::openFile);
+    connect(repoSettingsDialog, &ELORepoSettingsDialog::repoSettingsChanged, documentHandler, &ELODocumentHandler::updateRepoSettings);
+    connect(this, &ELOMainWindow::setClose, gitCom,&ELOGitProcess::setClose);
+    connect(settingsDialog, &ELOSettingsDialog::spellCheckChanged, documentHandler, &ELODocumentHandler::setSpellCheck);
+    connect(settingsDialog, &ELOSettingsDialog::spellCheckLanguageChanged, documentHandler, &ELODocumentHandler::setSpellCheckLanguage);
+    connect(user, &ELOUser::notConnected, this, &ELOMainWindow::notConnected);
 }
 
 void ELOMainWindow::closeNow()
@@ -259,16 +282,15 @@ void ELOMainWindow::closeNow()
     settings->setGeometry(saveGeometry());
     settings->setState(saveState());
 
+    // saving unaved Changes
+    if (tabWidget->count() > 0) {
+        connect(documentHandler, &ELODocumentHandler::allClosed, this, &ELOMainWindow::allClosed);
+        documentHandler->closeAllDocuments();
+    }
+
     // commit and try to push
-    /*QJsonObject repos = activeUser->getRepoPermissions();
-    QStringList keys = repos.keys();
-    foreach(QString key, keys) {
-        if(repos.value(key).toInt() == ReadWrite) {
-            gitCommunication->doTheCommit(activeUser, QDateTime::currentDateTime().toString(), key);
-            if(checkOnlineState())
-                    gitCommunication->doThePush(activeUser, key);
-        }
-    }*/
+    if (!user->getServer().isEmpty())
+        upsync();
     emit setClose(true);
     close();
 }
@@ -276,7 +298,7 @@ void ELOMainWindow::closeNow()
 void ELOMainWindow::openFile(const QString &filePath)
 {
     // get ELOWebView for file (new one or known one)
-    QWebEngineView *view = documentHandler->openFile(filePath);
+    ELOWebView *view = documentHandler->openFile(filePath);
     if (!view) { // on error or the file is not an experiment file, nullptr ist returned by the documentHandler
         return;
     }
@@ -293,7 +315,7 @@ void ELOMainWindow::openFile(const QString &filePath)
 void ELOMainWindow::selectCurrentDocument(int tabIndex)
 {
     // select current document at the documentHandler when the tab is changed
-    documentHandler->setCurrentDocument(qobject_cast<QWebEngineView *>(tabWidget->currentWidget()));
+    documentHandler->setCurrentDocument(qobject_cast<ELOWebView *>(tabWidget->currentWidget()));
     Q_UNUSED(tabIndex);
 }
 
@@ -303,7 +325,7 @@ void ELOMainWindow::closeTab(int tabIndex)
     documentHandler->requestClosingCurrentDocument(); // closing the current document deletes the ELOWebView, so the Tab is closed automatically, befor closing, modification is checkt and saving asked
 }
 
-void ELOMainWindow::renameTab(QWebEngineView *view, const QString &newTitle)
+void ELOMainWindow::renameTab(ELOWebView *view, const QString &newTitle)
 {
     int index = tabWidget->indexOf(view);
     if (index >= 0)
@@ -363,15 +385,45 @@ void ELOMainWindow::loadRecentUser(QAction *a)
 void ELOMainWindow::userLoaded(bool success)
 { // TODO: handle logout action (setEnabled)
     if (success) {
-        statusBar()->showMessage(tr("user loaded succesfully"),2000);
         actionLoadUser->setEnabled(false);
         recentUserGroup->setEnabled(false);
         actionChangePassword->setEnabled(true);
+        actionUpsync->setEnabled(true);
+        actionLogout->setEnabled(true);
+        if (user->canConnectToGit())
+            user->createRepoPermissions(gitCom->getUserInfo());
+        statusBar()->showMessage(tr("user loaded succesfully"),2000);
+        QJsonObject repos = user->getRepos();
+        QStringList repoNames = repos.keys();
+        std::sort(repoNames.begin(), repoNames.end(), [repos](const QString &a, const QString &b) -> bool { return repos.value(a).toObject().value("permissions").toInt() > repos.value(b).toObject().value("permissions").toInt();});
+        qDebug() << repoNames;
+        foreach (QString repoName, repoNames) {
+            QDir dir(settings->getWorkingDir() + QDir::separator() + repoName);
+            if(dir.exists()) {
+                // pull
+                statusBar()->showMessage(tr("pulling ...") + repoName);
+                if (user->getConnected())
+                    gitCom->doThePull(repoName);
+            } else {
+                // clone
+                statusBar()->showMessage(tr("cloning ...") + repoName);
+                if (user->getConnected()) {
+                    gitCom->doTheClone(repoName);
+                } else {
+                    QMessageBox::warning(this, tr("could not clone repository"), tr("The repository ") + repoName + tr(" could not be clones due to missing connection to the server."));
+                }
+            }
+            if(repoName != "ELOtemplates") {
+                fileView->addView(repoName, settings->getWorkingDir() + QDir::separator() + repoName, static_cast<permissionMode>(repos.value(repoName).toObject().value("permissions").toInt()));
+                linkDialog->insertToModel(settings->getWorkingDir() + QDir::separator() + repoName);
+            }
+        }
     } else {
         statusBar()->showMessage(tr("error loading user"),2000);
         actionLoadUser->setEnabled(true);
         recentUserGroup->setEnabled(true);
         actionChangePassword->setEnabled(false);
+        actionUpsync->setEnabled(false);
     }
 }
 
@@ -403,6 +455,73 @@ void ELOMainWindow::changePassword()
     }
 }
 
+void ELOMainWindow::logoutUser()
+{
+    actionLoadUser->setEnabled(true);
+    recentUserGroup->setEnabled(true);
+    actionChangePassword->setEnabled(false);
+    actionUpsync->setEnabled(false);
+    actionLogout->setEnabled(false);
+
+    fileView->clearViews();
+    documentHandler->closeAllDocuments();
+    linkDialog->clearModel();
+
+    user->unloadUser();
+}
+
+void ELOMainWindow::applyRepoPermissions(permissionMode permissions)
+{
+    // set file permissions related to the permissions of the shown repo in the fielView (like new file and new folder)
+    // the permissions correspons to the opened file are not affected here
+    if (permissions == ReadWrite) {
+        actionNewFile->setEnabled(true);
+    } else {
+        actionNewFile->setEnabled(false);
+    }
+}
+
+void ELOMainWindow::applyFilePermissions(permissionMode permissions)
+{
+    if (permissions == ReadWrite) {
+        actionInsertImage->setEnabled(true);
+        actionAddLink->setEnabled(true);
+        actionSaveFile->setEnabled(true);
+        actionRepoSettings->setEnabled(true);
+        QString currentRepoName = documentHandler->getCurrentRepoName();
+        repoSettingsDialog->setTitle(tr("ELO repo settings for: ") + currentRepoName);
+        QJsonDocument jsonDoc(user->getRepos().value(currentRepoName).toObject().value("settings").toObject());
+        repoSettingsDialog->setContent(jsonDoc.toJson(QJsonDocument::Indented));
+    } else {
+        actionInsertImage->setEnabled(false);
+        actionAddLink->setEnabled(false);
+        actionSaveFile->setEnabled(false);
+        actionRepoSettings->setEnabled(false);
+    }
+}
+
+void ELOMainWindow::upsync()
+{
+    if (!user->getServer().isEmpty()) {
+        gitCom->show();
+        QJsonObject repos = user->getRepos();
+        QStringList repoNames = repos.keys();
+        user->canConnectToGit();
+        foreach(QString repoName, repoNames) {
+            if(repos.value(repoName).toObject().value("permissions").toInt() == ReadWrite) {
+                gitCom->doTheCommit(QDateTime::currentDateTime().toString(), repoName);
+                if (user->getConnected())
+                    gitCom->doThePush(repoName);
+            }
+        }
+    }
+}
+
+void ELOMainWindow::notConnected()
+{
+    QMessageBox::warning(this,  tr("No connection to server"), tr("Cannot connect to the server, you're working offline. Be carefull with the upsync of your changes! ELO cannot handle file conflicts(yet)."));
+}
+
 void ELOMainWindow::saveCurrentFile()
 {
     documentHandler->saveCurrentDocument();
@@ -416,12 +535,22 @@ void ELOMainWindow::allClosed()
 
 void ELOMainWindow::openImage()
 {
-    QString fileName = QFileDialog::getOpenFileName(this, tr("Select Image to Insert"), settings->getWorkingDir(), tr("Images (*.png *.jpg *.bmp *.gif *.svg"));
+    QString fileName = QFileDialog::getOpenFileName(this, tr("Select Image to Insert"), settings->getWorkingDir(), tr("Images (*.png *.jpg *.bmp *.gif *.svg)"));
     if (!fileName.isEmpty()) {
         if (!fileName.startsWith(settings->getWorkingDir())) {
             // copy file into associated files
             fileName = documentHandler->copyToAssociatedFiles(fileName);
         }
         documentHandler->insertImage(fileName);
+    }
+}
+
+void ELOMainWindow::printToPDF()
+{
+    QString fileName = QFileDialog::getSaveFileName(this, tr("Select file location"), settings->getWorkingDir(), tr("PDF (*.pdf)"));
+    if (!fileName.isEmpty()) {
+        if (!fileName.endsWith(".pdf"))
+            fileName += ".pdf";
+        documentHandler->printToPDF(fileName);
     }
 }

@@ -22,6 +22,7 @@ QWebEnginePage *ELOWebPage::createWindow(WebWindowType type)
     ELOWebPage *page = new ELOWebPage(this->profile(), this->parent());
     connect(page, &ELOWebPage::urlChanged, this, &ELOWebPage::onUrlChanged);
     connect(page, &ELOWebPage::openFileRequest, this, &ELOWebPage::transmitOpenFileRequest);
+    qDebug() << "createWindow";
     return page;
 }
 
@@ -36,5 +37,6 @@ void ELOWebPage::onUrlChanged(const QUrl &url)
 
 void ELOWebPage::transmitOpenFileRequest(const QUrl &url)
 {
+    qDebug() << "transmitted";
     emit openFileRequest(url);
 }

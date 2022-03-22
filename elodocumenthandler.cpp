@@ -11,9 +11,10 @@ ELODocumentHandler::ELODocumentHandler(QObject *parent) : QObject(parent)
     currentRepoIndex = -1;
     settings = TheELOSettings::Instance();
     closeAll = false;
+    user = ELOUser::Instance();
 }
 
-QWebEngineView *ELODocumentHandler::openFile(const QString &filePath)
+ELOWebView *ELODocumentHandler::openFile(const QString &filePath)
 {
     QFileInfo finfo(filePath);
     if (!finfo.exists()) {
@@ -46,7 +47,7 @@ QWebEngineView *ELODocumentHandler::openFile(const QString &filePath)
             // open the file with system defaults
             QDesktopServices::openUrl(QUrl::fromLocalFile(filePath));
         } else if (msgBox.clickedButton() == insertLinkButton) {
-            insertLink(finfo.fileName(), currentDocument->getFileInfo().dir().relativeFilePath(filePath));
+            insertLink(finfo.fileName(), "php/file-getter.php?path=/" + QDir(settings->getWorkingDir()).relativeFilePath(filePath) + "&internal=true");
         } else if (msgBox.clickedButton() == insertImageButton) {
             insertImage(finfo.filePath());
         }
@@ -58,26 +59,24 @@ QWebEngineView *ELODocumentHandler::openFile(const QString &filePath)
         if (documents[i]->getFileInfo().filePath() == finfo.filePath()) {
             // document is already opened
             currentDocument = documents[i]; // the current document
+            emit filePermissionsChanged(static_cast<permissionMode>(user->getRepos().value(currentDocument->getRepoName()).toObject().value("permissions").toInt()));
             return currentDocument->getWebView(); // return the webview
         }
     }
 
-    // create new ELODocument
-    ELODocument *doc = new ELODocument(filePath);
-
-    // extract repoName from filePath
-    QString repoName;
-    QString path = finfo.filePath().replace("\\", "/"); // replace Windows path separators
-    path = path.remove(settings->getWorkingDir().replace("\\", "/"), Qt::CaseInsensitive);
-    int pos = path.indexOf("/", 1);
-    if(pos == -1) {
-        repoName = path.mid(1);
-    } else {
-        repoName = path.mid(1, pos-1);
+    // create new ELODocument with the right repoName
+    QString repoName = getRepoNameFromPath(filePath);
+    ELODocument *doc = new ELODocument(filePath, static_cast<permissionMode>(user->getRepos().value(repoName).toObject().value("permissions").toInt()));
+    if (settings->getSpellCheck()) {
+        doc->getWebPage()->profile()->setSpellCheckEnabled(true);
+        doc->getWebPage()->profile()->setSpellCheckLanguages({settings->getSpellCheckLanguage()});
     }
     doc->setRepoName(repoName);
+
     documents.append(doc);
     currentDocument = doc; // the new document is the current document
+    emit filePermissionsChanged(static_cast<permissionMode>(user->getRepos().value(currentDocument->getRepoName()).toObject().value("permissions").toInt()));
+
     connect(doc->getWebPage(), &ELOWebPage::openFileRequest, this, &ELODocumentHandler::performOpenFileRequest);
 
     return doc->getWebView(); // return the webview
@@ -88,18 +87,20 @@ ELODocumentHandler::~ELODocumentHandler()
     qDeleteAll(documents);
 }
 
-void ELODocumentHandler::setCurrentDocument(QWebEngineView *widget)
+void ELODocumentHandler::setCurrentDocument(ELOWebView *widget)
 {
     for (int i = 0; i < documents.length(); i++) {
         if (documents[i]->getWebView() == widget) {
             // this is the current document
             currentDocument = documents[i];
+            emit filePermissionsChanged(static_cast<permissionMode>(user->getRepos().value(currentDocument->getRepoName()).toObject().value("permissions").toInt()));
             emit currentMetadataChanged(currentDocument->getMetaData());
             emit currentFileChanged(currentDocument->getRepoName(), currentDocument->getFileTitle());
             return;
         }
     }
     emit currentMetadataChanged(QJsonObject());
+    emit filePermissionsChanged(static_cast<permissionMode>(user->getRepos().value(currentDocument->getRepoName()).toObject().value("permissions").toInt()));
 }
 
 QString ELODocumentHandler::copyToAssociatedFiles(const QString &path)
@@ -131,6 +132,13 @@ void ELODocumentHandler::insertImage(const QString &path)
     }
 }
 
+void ELODocumentHandler::printToPDF(const QString &path)
+{
+    if (currentDocument) {
+        currentDocument->printToPdf(path);
+    }
+}
+
 void ELODocumentHandler::setCurrentDirectory(const QString &path)
 {
     QFileInfo finfo(path);
@@ -139,6 +147,8 @@ void ELODocumentHandler::setCurrentDirectory(const QString &path)
     } else {
         currentDirectory = finfo.dir().path();
     }
+    QString currentRepo = getRepoNameFromPath(currentDirectory);
+    emit repoPermissionsChanged(static_cast<permissionMode>(user->getRepos().value(currentRepo).toObject().value("permissions").toInt()));
 }
 
 void ELODocumentHandler::performRenaming(const QString &oldpath, const QString &newpath)
@@ -170,9 +180,10 @@ void ELODocumentHandler::deleteFile(const QString &filePath)
     }
 }
 
-void ELODocumentHandler::updateMetadata(const QJsonObject obj)
+void ELODocumentHandler::updateMetadata(QJsonObject obj)
 {
     if (obj.contains("forNewFile")) { // create new file and add metadata
+        int experimentNumber = obj.value("experiment number").toString().remove(QRegularExpression("[^\\d]")).toInt();
         QString path = currentDirectory + QDir::separator() + obj.value("experiment number").toString() + ".html";
         QFile newFile(path);
         QFileInfo finfo(newFile);
@@ -192,23 +203,23 @@ void ELODocumentHandler::updateMetadata(const QJsonObject obj)
             newFile.write("<!-- {} -->\n<html></html>");
         }
         newFile.close();
-        ELODocument *doc = new ELODocument(path);
+        ELODocument *doc = new ELODocument(path, static_cast<permissionMode>(user->getRepos().value(getRepoNameFromPath(currentDirectory)).toObject().value("permissions").toInt()));
+        obj.remove("forNewFile");
         doc->setMetadata(obj);
         // extract repoName from filePath
-        QString repoName;
-        path = finfo.filePath().replace("\\", "/"); // replace Windows path separators
-        path = path.remove(settings->getWorkingDir().replace("\\", "/"), Qt::CaseInsensitive);
-        int pos = path.indexOf("/", 1);
-        if(pos == -1) {
-            repoName = path.mid(1);
-        } else {
-            repoName = path.mid(1, pos-1);
-        }
+        QString repoName = getRepoNameFromPath(finfo.filePath());
         doc->setRepoName(repoName);
         documents.append(doc);
         currentDocument = doc; // the new document is the current document
+
+        QJsonObject repoSettings = user->getRepos().value(currentDocument->getRepoName()).toObject().value("settings").toObject();
+        repoSettings.insert("lastExperimentNumber", experimentNumber);
+        user->updateRepoSettings(repoSettings, currentDocument->getRepoName());
+
+        emit filePermissionsChanged(static_cast<permissionMode>(user->getRepos().value(currentDocument->getRepoName()).toObject().value("permissions").toInt()));
         emit newFileCreatedView(doc->getWebView());
         emit newFileCreatedModel(doc->getFileInfo().filePath());
+        emit currentMetadataChanged(currentDocument->getMetaData());
 
     } else { // simply update the metadata
         currentDocument->setMetadata(obj);
@@ -217,14 +228,17 @@ void ELODocumentHandler::updateMetadata(const QJsonObject obj)
 
 void ELODocumentHandler::startFileCreation(const QString &parentPath)
 {
-    // TODO: Repo-Standards einfügen
+    if (!parentPath.isEmpty())
+        setCurrentDirectory(parentPath);
+
+    QJsonObject repoSettings = user->getRepos().value(getRepoNameFromPath(currentDirectory)).toObject().value("settings").toObject();
     QJsonObject obj;
-    obj.insert("author", "");
+    obj.insert("author", user->getName());
     obj.insert("date", QDate::currentDate().toString("yyyy-MM-dd"));
     obj.insert("description", "");
     obj.insert("title", "");
-    obj.insert("experiment number", "");
-    obj.insert("template", "");
+    obj.insert("experiment number", repoSettings.value("prefix").toString() + QString::number(repoSettings.value("lastExperimentNumber").toInt() + 1));
+    obj.insert("template", repoSettings.value("template"));
     obj.insert("forNewFile", true);
     emit askForMetadataForNewFile(obj);
 }
@@ -241,6 +255,11 @@ const QString &ELODocumentHandler::getCurrentTitle() const
     return currentDocument->getFileTitle();
 }
 
+const QString &ELODocumentHandler::getCurrentRepoName() const
+{
+    return currentDocument->getRepoName();
+}
+
 bool ELODocumentHandler::isExperimentFile(const QString &filePath)
 {
     QFile file(filePath);
@@ -254,8 +273,14 @@ bool ELODocumentHandler::isExperimentFile(const QString &filePath)
 
 void ELODocumentHandler::requestClosingCurrentDocument()
 {
-    connect(currentDocument, &ELODocument::wasModified, this, &ELODocumentHandler::saveAndCloseCurrentDocument);
-    currentDocument->checkModified();
+    if (currentDocument != nullptr) {
+        if (static_cast<permissionMode>(user->getRepos().value(currentDocument->getRepoName()).toObject().value("permissions").toInt()) == ReadWrite) {
+            connect(currentDocument, &ELODocument::wasModified, this, &ELODocumentHandler::saveAndCloseCurrentDocument);
+            currentDocument->checkModified();
+        } else {
+            closeCurrentDocument();
+        }
+    }
 }
 
 void ELODocumentHandler::saveAndCloseCurrentDocument(bool modified)
@@ -293,6 +318,20 @@ void ELODocumentHandler::closeCurrentDocument()
     }
 }
 
+QString ELODocumentHandler::getRepoNameFromPath(QString path)
+{
+    QString repoName;
+    path = path.replace("\\", "/"); // replace Windows path separators
+    path = path.remove(settings->getWorkingDir().replace("\\", "/"), Qt::CaseInsensitive);
+    int pos = path.indexOf("/", 1);
+    if(pos == -1) {
+        repoName = path.mid(1);
+    } else {
+        repoName = path.mid(1, pos-1);
+    }
+    return repoName;
+}
+
 void ELODocumentHandler::closeAllDocuments()
 {
     closeAll = true;
@@ -302,22 +341,58 @@ void ELODocumentHandler::closeAllDocuments()
 void ELODocumentHandler::performOpenFileRequest(const QUrl &url)
 {
     qDebug() << "file request for" << url;
-    if (isExperimentFile(url.toString())) {
-        openFile(url.toString());
+    QString path = url.toString();
+    if (path.contains("php/file-getter.php") && path.endsWith("&internal=true")) {
+        // internal file
+        int index = path.indexOf("php/file-getter.php?path=") + QString("php/file-getter.php?path=").length();
+        path = path.replace(path.left(index), settings->getWorkingDir());
+        path = path.remove("&internal=true");
+        if (isExperimentFile(path)) {
+            emit openExperimentRequest(path);
+        } else {
+            QDesktopServices::openUrl(QUrl::fromLocalFile(path));
+        }
+    } else if (path.contains("php/file-getter.php") && path.endsWith("&external=true")) {
+        int index = path.indexOf("php/file-getter.php?path=") + QString("php/file-getter.php?path=").length();
+        path = path.remove(path.left(index));
+        path = path.remove("&external=true");
+        // replace shortcuts
+        QVector<PathShortcut> pathShortcuts = settings->getPathShortCuts();
+        for (int i = 0; i < pathShortcuts.length(); i++) {
+            if (path.startsWith(pathShortcuts[i].Name)) {
+                path = path.replace(pathShortcuts[i].Name, pathShortcuts[i].Path);
+                break;
+            }
+        }
+        QDesktopServices::openUrl(QUrl::fromLocalFile(path));
     } else {
         QDesktopServices::openUrl(url);
     }
+
 }
 
 void ELODocumentHandler::insertLink(const QString &text, const QString &url)
 {
     if (currentDocument) {
-        QString newUrl;
-        if (!url.startsWith("http")) {
-            newUrl = currentDocument->getFileInfo().dir().relativeFilePath(url);
-        } else {
-            newUrl = url;
-        }
-        currentDocument->getWebPage()->runJavaScript("editor.model.change( writer => { const insertPosition = editor.model.document.selection.getFirstPosition(); writer.insertText( '" + text + "', { linkHref: '" + newUrl + "' }, insertPosition ); } );");
+        currentDocument->getWebPage()->runJavaScript("editor.model.change( writer => { const insertPosition = editor.model.document.selection.getFirstPosition(); writer.insertText( '" + text + "', { linkHref: '" + url + "' }, insertPosition ); } );");
+    }
+}
+
+void ELODocumentHandler::updateRepoSettings(QJsonObject settings)
+{
+    user->updateRepoSettings(settings, currentDocument->getRepoName());
+}
+
+void ELODocumentHandler::setSpellCheck(bool enabled)
+{
+    for (int i = 0; i < documents.length(); i++) {
+        documents[i]->getWebPage()->profile()->setSpellCheckEnabled(enabled);
+    }
+}
+
+void ELODocumentHandler::setSpellCheckLanguage(QString language)
+{
+    for (int i = 0; i < documents.length(); i++) {
+        documents[i]->getWebPage()->profile()->setSpellCheckLanguages({language});
     }
 }

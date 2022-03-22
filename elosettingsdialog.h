@@ -8,6 +8,8 @@
 #include <QLineEdit>
 #include <QListWidget>
 #include <QLabel>
+#include <QCheckBox>
+#include <QComboBox>
 
 #include "elosettings.h"
 
@@ -37,6 +39,9 @@ private:
     QString tmp_workingDir;
     QVector<PathShortcut> tmp_PathShortcuts;
 
+    QCheckBox *checkboxSc;
+    QComboBox *comboSc;
+
     int shortcutEditIndex;
 
 
@@ -52,6 +57,11 @@ private slots:
     void editPathshortcut();
     void deletePathShortcut();
     void shortcutSelected(int currentRow);
+    void spellCheckState(bool checked);
+
+signals:
+    void spellCheckChanged(bool);
+    void spellCheckLanguageChanged(QString);
 };
 
 #endif // ELOSETTINGSDIALOG_H

@@ -7,6 +7,7 @@
 #include <QGroupBox>
 #include <QFormLayout>
 #include <QMessageBox>
+#include <QCoreApplication>
 
 ELOSettingsDialog::ELOSettingsDialog(QWidget *parent):
     QDialog(parent, Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowMinMaxButtonsHint )
@@ -129,9 +130,34 @@ ELOSettingsDialog::ELOSettingsDialog(QWidget *parent):
     connect(buttonDeletePs, &QPushButton::pressed, this, &ELOSettingsDialog::deletePathShortcut);
     connect(shortcutList, &QListWidget::currentRowChanged, this, &ELOSettingsDialog::shortcutSelected);
 
+    // spell check
+    QWidget *widgetSc = new QWidget();
+    QVBoxLayout *layoutSc = new QVBoxLayout();
+    QHBoxLayout *layoutSc2 = new QHBoxLayout();
+    widgetSc->setLayout(layoutSc);
+    checkboxSc = new QCheckBox(tr("enable spell check"), this);
+    comboSc = new QComboBox();
+    QDir d(QCoreApplication::applicationDirPath() + QDir::separator() + "qtwebengine_dictionaries");
+    QStringList dicts = d.entryList({"*.bdic"});
+    foreach (QString s, dicts) {
+        comboSc->addItem(s.left(5));
+    }
+
+    layoutSc->addWidget(checkboxSc);
+    layoutSc2->addWidget(new QLabel(tr("Language: ")));
+    layoutSc2->addWidget(comboSc);
+    layoutSc->addLayout(layoutSc2);
+    layoutSc->addStretch();
+
+    connect(checkboxSc, &QCheckBox::clicked, this, &ELOSettingsDialog::spellCheckState);
+
+    centralTabWidget->addTab(widgetSc, tr("Spell Check"));
+
     // loadSettings
     tmp_workingDir = originalSettings->getWorkingDir();
     tmp_PathShortcuts = originalSettings->getPathShortCuts();
+    comboSc->setCurrentText(originalSettings->getSpellCheckLanguage());
+    checkboxSc->setChecked(originalSettings->getSpellCheck());
 
     // fill settings into form
     editWd->setText(tmp_workingDir);
@@ -150,6 +176,16 @@ void ELOSettingsDialog::accept()
     originalSettings->clearPathShortcuts();;
     for (int i = 0; i < tmp_PathShortcuts.length(); i++) {
         originalSettings->addPathShortCut(tmp_PathShortcuts[i]);
+    }
+
+    // spell check
+    if (originalSettings->getSpellCheck() != checkboxSc->isChecked()) {
+        emit spellCheckChanged(checkboxSc->isChecked());
+        originalSettings->setSpellCheck(checkboxSc->isChecked());
+    }
+    if (originalSettings->getSpellCheckLanguage() != comboSc->currentText()) {
+        originalSettings->setSpellCheckLanguage(comboSc->currentText());
+        emit spellCheckLanguageChanged(comboSc->currentText());
     }
 
     // reset shortcutEditIndex
@@ -269,5 +305,14 @@ void ELOSettingsDialog::shortcutSelected(int currentRow)
         shortcutDescriptionLabel->clear();
         buttonEditPs->setEnabled(false);
         buttonDeletePs->setEnabled(false);
+    }
+}
+
+void ELOSettingsDialog::spellCheckState(bool checked)
+{
+    if (checked) {
+        comboSc->setEnabled(true);
+    } else {
+        comboSc->setEnabled(false);
     }
 }

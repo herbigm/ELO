@@ -6,6 +6,10 @@
 #include <QJsonObject>
 #include <QDir>
 
+#include "elosettings.h"
+
+enum permissionMode {None, ReadOnly, ReadWrite}; // valid permission modes of users in a repository
+
 class ELOUser : public QObject
 {
     Q_OBJECT
@@ -32,8 +36,9 @@ public:
             return "$2y$10$6SaIY115fEVQcCuoldIM/uRcU96qPcvtHUnF039g6BxpHk5UqOgq6";
         return userSettings.value("webPassword").toString();
     }
-    QJsonObject getRepoPermissions() {return repos; }
+    QJsonObject getRepos() {return repos; }
     QString getKeyFile() {return configSavePath + QDir::separator() +  userSettings.value("username").toString() + ".user"; }
+    bool getConnected() { return isConnected; }
 
     // setter functions
     void setAdditionalInformation(QString json);
@@ -53,6 +58,12 @@ public:
     void readUserFile(const QByteArray content);
     void saveUserFile(QByteArray pw = QByteArray(), QString path = QString());
     void changePassword(const QString &newFile, const QByteArray pw);
+    void createRepoPermissions(const QString &gitoliteOutput);
+    void updateRepoSettings(QJsonObject repoSettings, const QString &repoName);
+    void unloadUser();
+
+    bool canConnectServer(const QString addr, uint port);
+    bool canConnectToGit();
 
 private:
     explicit ELOUser();
@@ -69,9 +80,12 @@ private:
     QJsonObject repos;
     QByteArray passwd;
     bool m_isLoaded;
+    bool isConnected;
+    ELOSettings *settings;
 
 signals:
     void userLoaded(bool);
+    void notConnected();
 
 };
 

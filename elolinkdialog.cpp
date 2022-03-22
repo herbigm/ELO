@@ -5,6 +5,8 @@
 #include <QMessageBox>
 #include <QFileDialog>
 
+#include "elofilemodel.h"
+
 ELOLinkDialog::ELOLinkDialog(QWidget *parent):
     QDialog(parent, Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowMinMaxButtonsHint )
 {
@@ -32,7 +34,9 @@ ELOLinkDialog::ELOLinkDialog(QWidget *parent):
     externalPathEdit->setReadOnly(true);
     shortcutComboBox = new QComboBox(this);
     showShortcuts();
-    internalView = new QListView(this);
+    internalView = new QTreeView(this);
+    internalView->setModel(new ELOFileModel(ReadOnly, this));
+    internalView->setEditTriggers(QAbstractItemView::NoEditTriggers);
     tabWidget = new QTabWidget(this);
     QWidget *internalLinkWidget = new QWidget(this);
     QWidget *externalLinkWidget = new QWidget(this);
@@ -83,6 +87,16 @@ void ELOLinkDialog::showShortcuts()
     }
 }
 
+void ELOLinkDialog::insertToModel(const QString &path)
+{
+    qobject_cast<ELOFileModel *>(internalView->model())->addPath(path);
+}
+
+void ELOLinkDialog::clearModel()
+{
+    qobject_cast<ELOFileModel *>(internalView->model())->clear();
+}
+
 void ELOLinkDialog::accept()
 {
     // there have to be a link text!
@@ -92,7 +106,12 @@ void ELOLinkDialog::accept()
         return;
     }
     if (tabWidget->currentIndex() == 0) { // internal link
-
+        QModelIndex index = internalView->currentIndex();
+        QString pathText = qobject_cast<ELOFileModel *>(internalView->model())->itemFromIndex(index)->accessibleDescription();
+        QString proceededPath;
+        proceededPath = "php/file-getter.php?path=" + pathText.replace(settings->getWorkingDir(), "") + "&internal=true";
+        // emit to insert link!
+        emit setLinkRequest(linkText, proceededPath);
     } else if (tabWidget->currentIndex() == 1) { // external link
         QString pathText = externalPathEdit->text();
         QString proceededPath;
@@ -112,7 +131,7 @@ void ELOLinkDialog::accept()
             // the path is NOT inside any shortcut directory
             // maybe is is an internal link?
             if (pathText.startsWith(settings->getWorkingDir())) {
-                proceededPath = "php/file-getter.php?path=" + pathText.replace(settings->getWorkingDir(), "") + "&external=false";
+                proceededPath = "php/file-getter.php?path=" + pathText.replace(settings->getWorkingDir(), "") + "&internal=true";
                 QMessageBox::information(this, tr("Found internal link"), tr("The given path is a internal path and will be handled as so."));
             }
         }

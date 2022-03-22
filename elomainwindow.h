@@ -6,8 +6,8 @@
 #include <QDockWidget>
 #include <QSettings>
 #include <QToolBar>
-#include <QWebEngineView>
 #include <QActionGroup>
+#include <QTranslator>
 
 #include "elosettingsdialog.h"
 #include "elosettings.h"
@@ -18,6 +18,7 @@
 #include "eloassociatedfileview.h"
 #include "elouser.h"
 #include "elogitprocess.h"
+#include "eloreposettingsdialog.h"
 
 class ELOMainWindow : public QMainWindow
 {
@@ -32,10 +33,11 @@ protected:
 
 private slots:
      void startNewFile(const QJsonObject obj);
-     void openNewCreatedFile(QWebEngineView *view);
+     void openNewCreatedFile(ELOWebView *view);
      void saveCurrentFile();
      void allClosed();
      void openImage();
+     void printToPDF();
 
 private:
     void createWidgets();
@@ -49,13 +51,20 @@ private:
 
     void selectCurrentDocument(int tabIndex);
     void closeTab(int tabIndex);
-    void renameTab(QWebEngineView *view, const QString &newTitle);
+    void renameTab(ELOWebView *view, const QString &newTitle);
 
     void loadUser(QString fileName);
     void loadNewUser();
     void loadRecentUser(QAction *a);
     void userLoaded(bool success);
     void changePassword();
+    void logoutUser();
+
+    void applyRepoPermissions(permissionMode permissions);
+    void applyFilePermissions(permissionMode permissions);
+    void upsync();
+
+    void notConnected();
 
 
     // widgets
@@ -71,6 +80,7 @@ private:
     ELOMetadataDialog *metadataDialog;
     ELOLinkDialog *linkDialog;
     ELOGitProcess *gitCom;
+    ELORepoSettingsDialog *repoSettingsDialog;
 
     QToolBar *mainToolBar;
 
@@ -82,25 +92,21 @@ private:
     QActionGroup *recentUserGroup;
     QAction *actionExit;
     QAction *actionShowProcess;
+    QAction *actionLogout;
 
     QMenu *m_experimentMenu;
+    QAction *actionNewFile;
     QAction *actionMetadata;
     QAction *actionSaveFile;
-    QAction *actionPrintPreview;
-    QAction *actionPrint;
-    QAction *actionPrintToPDF;
-    QAction *actionAddComment;
     QAction *actionAddLink;
     QAction *actionInsertImage;
+    QAction *actionPrintPDF;
 
     QMenu *m_settingsMenu;
     QAction *actionSettings;
-    QAction *actionRepoOptions;
-    QAction *actionSpellCheck;
-    QAction *actionShowMetadata;
+    QAction *actionRepoSettings;
     QAction *actionShowAssociatedFiles;
     QAction *actionShowFileTree;
-    QAction *actionShowComments;
     QAction *actionShowCalculator;
 
     QMenu *m_databasMenu;
@@ -119,6 +125,10 @@ private:
 
     // user
     ELOUser *user;
+
+    // translator
+    QTranslator m_translator;
+    QTranslator m_translatorQt;
 
 signals:
     void setClose(bool b);

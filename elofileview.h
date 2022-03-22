@@ -7,12 +7,15 @@
 #include <QMenu>
 #include <QStandardItem>
 
+#include "elouser.h"
+
 class ELOFileView : public QTabWidget
 {
     Q_OBJECT
 public:
     explicit ELOFileView(QWidget *parent = nullptr);
-    void addView(const QString &title, const QString &path);
+    void addView(const QString &title, const QString &path, permissionMode permissions);
+    void clearViews();
 
 private:
     QVector<QTreeView *> views;
@@ -40,6 +43,7 @@ private slots:
     void removeFolder();
     void renameFolder();
     void renameFile();
+    void currentTabChanged(int index);
 
 signals:
     void itemSelected(const QString);

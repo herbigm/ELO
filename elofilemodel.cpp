@@ -3,16 +3,27 @@
 #include <QFileInfo>
 #include <QDir>
 
-ELOFileModel::ELOFileModel(QObject *parent): QStandardItemModel(parent)
+ELOFileModel::ELOFileModel(permissionMode permissions, QObject *parent): QStandardItemModel(parent)
 {
     rootItem = this->invisibleRootItem();
     dirIcon = QApplication::style()->standardIcon(QStyle::SP_DirIcon);      //icon for directories
     fileIcon = QApplication::style()->standardIcon(QStyle::SP_FileIcon);    //icon for files
-
-    m_isReadOnly = true;
+    if (permissions == ReadWrite) {
+        m_isReadOnly = false;
+    } else {
+        m_isReadOnly = true;
+    }
 }
 
 void ELOFileModel::setRootPath(const QString &path)
+{
+    while (rootItem->hasChildren()) { // delete all items
+        delete rootItem->takeChild(0);
+    }
+    addPath(path);
+}
+
+void ELOFileModel::addPath(const QString &path)
 {
     QStandardItem* child;
     QFileInfo finfo(path);
@@ -20,6 +31,19 @@ void ELOFileModel::setRootPath(const QString &path)
     child->setAccessibleDescription(finfo.filePath());     //set actual path to item
     rootItem->appendRow(child);            //add the parent item to root item
     getChildNodes(path, child);          //Iterate and populate the contents
+}
+
+void ELOFileModel::removePath(const QString &path)
+{
+    QFileInfo finfo(path);
+    if (rootItem->hasChildren()) {
+        for (int i = 0; i < rootItem->rowCount(); i++) {
+            if (rootItem->child(i)->accessibleDescription() == finfo.dir().path()) {
+                deleteItem(rootItem->child(i));
+                return;
+            }
+        }
+    }
 }
 
 bool ELOFileModel::isRootsFirstChild(const QModelIndex &index)
@@ -93,6 +117,13 @@ void ELOFileModel::deleteItem(QStandardItem *item)
     QStandardItem *parent = item->parent();
     QList<QStandardItem *> itemlist = parent->takeRow(item->row());
     qDeleteAll(itemlist);
+}
+
+QStandardItem *ELOFileModel::getRootsFirstChild()
+{
+    if (rootItem->hasChildren())
+        return rootItem->child(0);
+    return nullptr;
 }
 
 void ELOFileModel::getChildNodes(const QString &path, QStandardItem *parentItem)

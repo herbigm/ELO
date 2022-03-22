@@ -40,11 +40,13 @@ ELOFileView::ELOFileView(QWidget *parent) : QTabWidget(parent)
     const QIcon renameFileIcon = QIcon::fromTheme("document-rename", QIcon(":icons/icons/rename.svg"));
     actionRenameFile = new QAction(renameFileIcon, tr("Rename File"), this);
     connect(actionRenameFile, &QAction::triggered, this, &ELOFileView::renameFile);
+
+    connect(this, &QTabWidget::currentChanged, this, &ELOFileView::currentTabChanged);
 }
 
-void ELOFileView::addView(const QString &title, const QString &path)
+void ELOFileView::addView(const QString &title, const QString &path, permissionMode permissions)
 {
-    ELOFileModel *model = new ELOFileModel();
+    ELOFileModel *model = new ELOFileModel(permissions);
     model->setRootPath(path);
     views.append(new QTreeView());
     views.last()->setEditTriggers(QAbstractItemView::NoEditTriggers);
@@ -56,8 +58,14 @@ void ELOFileView::addView(const QString &title, const QString &path)
     connect(views.last(), &QTreeView::customContextMenuRequested, this, &ELOFileView::treeViewContextMenu);
     connect(views.last(), &QTreeView::doubleClicked, this, &ELOFileView::onModelSelected);
     connect(views.last(), &QTreeView::clicked, this, &ELOFileView::onModelItemClicked);
+}
 
-    emit itemClicked(path); // to set currentDirectory in the documentHandler
+void ELOFileView::clearViews()
+{
+    disconnect(this, &QTabWidget::currentChanged, this, &ELOFileView::currentTabChanged);
+    clear();
+    qDeleteAll(views);
+    views.clear();
 }
 
 void ELOFileView::addNewFile(const QString filePath)
@@ -180,6 +188,18 @@ void ELOFileView::renameFile()
     }
 }
 
+void ELOFileView::currentTabChanged(int index)
+{
+    ELOFileModel *model = qobject_cast<ELOFileModel *>(views[index]->model());
+    QStandardItem *item = model->itemFromIndex(views[index]->currentIndex());
+    if (!item) // if no item was selected, try to get the roots first child item
+        item = model->getRootsFirstChild();
+    if (item) {
+        QString filePath = item->accessibleDescription();
+        emit itemClicked(filePath);
+    }
+}
+
 void ELOFileView::treeViewContextMenu(const QPoint &point)
 {
     QModelIndex index = views[currentIndex()]->indexAt(point);
@@ -191,7 +211,7 @@ void ELOFileView::treeViewContextMenu(const QPoint &point)
         contextMenuItem = item;
         contextMenuPath = filePath;
         emit itemClicked(filePath);
-        if(model->isReadOnly()) {
+        if(!model->isReadOnly()) {
             QFileInfo finfo(filePath);
             if(finfo.isDir()) {
                 contextMenu->addAction(actionNewFile);

@@ -7,8 +7,7 @@
 
 #include "elodocument.h"
 #include "elosettings.h"
-
-enum permissionMode {None, ReadOnly, ReadWrite}; // valid permission modes of users in a repository
+#include "elouser.h"
 
 typedef struct{
     QString Name;
@@ -24,29 +23,34 @@ public:
     explicit ELODocumentHandler(QObject *parent = nullptr);
     ~ELODocumentHandler();
 
-    QWebEngineView *openFile(const QString &filePath);
+    ELOWebView *openFile(const QString &filePath);
     void requestClosingCurrentDocument();
 
     // getter functions
     const QString &getCurrentTitle() const;
+    const QString &getCurrentRepoName() const;
 
     // setter functions
-    void setCurrentDocument(QWebEngineView *widget);
+    void setCurrentDocument(ELOWebView *widget);
 
     QString copyToAssociatedFiles(const QString &path);
     void insertImage(const QString &path);
+    void printToPDF(const QString &path);
 
 
 public slots:
     void setCurrentDirectory(const QString &path);
     void performRenaming(const QString &oldpath, const QString &newpath);
     void deleteFile(const QString &filePath);
-    void updateMetadata(const QJsonObject obj);
-    void startFileCreation(const QString &parentPath);
+    void updateMetadata(QJsonObject obj);
+    void startFileCreation(const QString &parentPath = QString());
     void saveCurrentDocument();
     void closeAllDocuments();
     void performOpenFileRequest(const QUrl &url);
     void insertLink(const QString &text, const QString &url);
+    void updateRepoSettings(QJsonObject settings);
+    void setSpellCheck(bool enabled);
+    void setSpellCheckLanguage(QString language);
 
 private:
     ELOSettings *settings;
@@ -56,19 +60,24 @@ private:
     int currentRepoIndex;
     QString currentDirectory;
     bool closeAll;
+    ELOUser *user;
 
     bool isExperimentFile(const QString &filePath);
     void saveAndCloseCurrentDocument(bool modified);
     void closeCurrentDocument();
+    QString getRepoNameFromPath(QString path);
 
 signals:
-    void documentTitleChanged(QWebEngineView *, const QString);
+    void documentTitleChanged(ELOWebView *, const QString);
     void currentMetadataChanged(const QJsonObject);
     void currentFileChanged(const QString &repo, const QString &fileName);
     void askForMetadataForNewFile(const QJsonObject);
-    void newFileCreatedView(QWebEngineView *);
+    void newFileCreatedView(ELOWebView *);
     void newFileCreatedModel(const QString);
     void allClosed();
+    void repoPermissionsChanged(permissionMode p);
+    void filePermissionsChanged(permissionMode p);
+    void openExperimentRequest(const QString &);
 
 };
 

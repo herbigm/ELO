@@ -22,5 +22,9 @@
         <file>icons/user-others.svg</file>
         <file>icons/document-decrypt.svg</file>
         <file>icons/preferences-system-startup.svg</file>
+        <file>Icon.ico</file>
+        <file>icons/upload-media.svg</file>
+        <file>icons/im-kick-user.svg</file>
+        <file>icons/application-pdf.svg</file>
     </qresource>
 </RCC>

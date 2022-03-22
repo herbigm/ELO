@@ -14,16 +14,15 @@ int main(int argc, char *argv[])
     QCoreApplication::setApplicationVersion("1.49");
 
     QApplication app(argc, argv);
+    app.setWindowIcon(QIcon(":/icons/Icon.ico"));
 
     // settings for the translations
+    QString localeString = QLocale::system().name();
+    QLocale locale = QLocale(localeString);
+    QLocale::setDefault(locale);
     QTranslator translator;
-    const QStringList uiLanguages = QLocale::system().uiLanguages();
-    for (const QString &locale : uiLanguages) {
-        const QString baseName = "ELO-NG_" + QLocale(locale).name();
-        if (translator.load(":/i18n/" + baseName)) {
-            app.installTranslator(&translator);
-            break;
-        }
+    if (translator.load(QCoreApplication::applicationDirPath() + QDir::separator() + QString("ELO-NG_%1.qm").arg(localeString))) {
+        app.installTranslator(&translator);
     }
 
     // starting the MainWindow

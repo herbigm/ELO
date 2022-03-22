@@ -8,7 +8,7 @@
 #include <QJsonObject>
 #include <QFormLayout>
 #include <QComboBox>
-#include <QListView>
+#include <QTreeView>
 
 #include "elosettings.h"
 
@@ -18,6 +18,8 @@ class ELOLinkDialog : public QDialog
 public:
     ELOLinkDialog(QWidget *parent=nullptr);
     void showShortcuts();
+    void insertToModel(const QString &path);
+    void clearModel();
 
 private:
     ELOSettings *settings;
@@ -28,7 +30,7 @@ private:
     QLineEdit *urlEdit;
     QComboBox *shortcutComboBox;
     QLineEdit *externalPathEdit;
-    QListView *internalView;
+    QTreeView *internalView;
 
 private slots:
     void accept();

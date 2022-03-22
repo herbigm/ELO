@@ -3,7 +3,7 @@
 #include <QWebEngineSettings>
 #include "elosettings.h"
 
-ELODocument::ELODocument(const QString &filePath)
+ELODocument::ELODocument(const QString &filePath, permissionMode permissions)
 {
     fileInfo = QFileInfo(filePath);
     fileTitle = fileInfo.fileName().left(fileInfo.fileName().length()-5);
@@ -25,7 +25,7 @@ ELODocument::ELODocument(const QString &filePath)
     profile->settings()->setAttribute(QWebEngineSettings::LocalContentCanAccessRemoteUrls, true);
 
     // create webView
-    webView = new QWebEngineView();
+    webView = new ELOWebView();
     webPage = new ELOWebPage(profile, webView);
     webView->setPage(webPage);
 
@@ -55,7 +55,8 @@ ELODocument::ELODocument(const QString &filePath)
     }
 
     webView->page()->setHtml(editorHTML.replace("{{Style}}", css).replace("{{CONTENT}}", experimentHTML), QUrl::fromLocalFile(fileInfo.filePath()));
-    connect(webView, &QWebEngineView::loadFinished, this, &ELODocument::loadJS);
+    if (permissions == ReadWrite) // only load the editor, if the file could be changed
+        connect(webView, &ELOWebView::loadFinished, this, &ELODocument::loadJS);
 }
 
 void ELODocument::loadJS(bool ok)
@@ -77,6 +78,24 @@ void ELODocument::loadJS(bool ok)
 void ELODocument::startSaveing()
 {
     webView->page()->runJavaScript("window.editor.getData();", [this](const QVariant &v) { saveDocument(v.toString());});
+}
+
+void ELODocument::printToPdf(const QString &path)
+{
+    webView->page()->runJavaScript("window.editor.getData();", [this, path](const QVariant &v) {
+        QString fileContent = "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\" />\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>{{TITLE}}</title>\n</head>\n<body>\n{{CONTENT}}\n</body>\n</html>";
+        fileContent = fileContent.replace("{{TITLE}}", metaData.value("title").toString());
+        fileContent = fileContent.replace("{{CONTENT}}", v.toString());
+        fileContent = "<!-- " + QJsonDocument(metaData).toJson(QJsonDocument::Compact) + " -->\n" + fileContent;
+
+        QPrinter printer(QPrinter::PrinterResolution);
+        printer.setOutputFormat(QPrinter::PdfFormat);
+        printer.setOutputFileName(path);
+
+        QTextDocument doc;
+        doc.setHtml(fileContent);
+        doc.print(&printer);
+    });
 }
 
 void ELODocument::saveDocument(const QString content)

@@ -1,0 +1,13 @@
+{
+  "name": "elo-ng",
+  "version-string": "1.2",
+  "dependencies": [
+    {
+        "name": "libgit2",
+        "default-features": false,
+        "features": [ "openssl", "ssh", "pcre2" ]
+    },
+    "libssh2",
+    "openssl"
+  ]
+}

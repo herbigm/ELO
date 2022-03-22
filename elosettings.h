@@ -46,6 +46,9 @@ public:
     inline bool getSpellCheck() {
         return settings->value("enableSpellCheck").toBool();
     }
+    inline QString getSpellCheckLanguage() {
+        return settings->value("spellCheckLanguage").toString();
+    }
 
     inline void setLastOpenDir(QString lod) {
         lastOpenDir = lod;
@@ -81,6 +84,10 @@ public:
 
     inline void setSpellCheck(bool b) {
         settings->setValue("enableSpellCheck", b);
+        settings->sync();
+    }
+    inline void setSpellCheckLanguage(const QString &lang) {
+        settings->setValue("spellCheckLanguage", lang);
         settings->sync();
     }
 

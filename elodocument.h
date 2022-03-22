@@ -9,15 +9,17 @@
 #include <QWebEngineProfile>
 #include <QDir>
 #include <QCoreApplication>
-#include <QWebEngineView>
+#include <QPrinter>
+#include <QTextDocument>
 
 #include "elowebpage.h"
+#include "elouser.h"
 
 class ELODocument: public QObject
 {
     Q_OBJECT
 public:
-    explicit ELODocument(const QString &filePath);
+    explicit ELODocument(const QString &filePath, permissionMode permissions);
 
     ~ELODocument() {
         delete webPage;
@@ -30,7 +32,7 @@ public:
     const QString &getFileTitle() const { return fileTitle; }
     const QFileInfo &getFileInfo() const { return fileInfo; }
     QJsonObject getMetaData() { return metaData; }
-    QWebEngineView *getWebView() { return webView; }
+    ELOWebView *getWebView() { return webView; }
     ELOWebPage *getWebPage() { return webPage; }
 
     inline void setRepoName(const QString &newRepoName) { repoName = newRepoName; }
@@ -40,6 +42,7 @@ public:
     }
     inline void setMetadata(const QJsonObject obj) { metaData = obj; }
     void startSaveing();
+    void printToPdf(const QString &path);
     void saveDocument(const QString content);
     void checkModified();
 
@@ -47,7 +50,7 @@ private:
     QString repoName;
     QString fileTitle;
     QFileInfo fileInfo;
-    QWebEngineView *webView;
+    ELOWebView *webView;
     ELOWebPage *webPage;
     QJsonObject metaData;
     QString lastSavedContent;
