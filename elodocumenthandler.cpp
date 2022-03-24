@@ -21,8 +21,8 @@ ELOWebView *ELODocumentHandler::openFile(const QString &filePath)
         qErrnoWarning("File not found");
         return nullptr;
     }
-    // test, if file is an experiment file
-    if (!isExperimentFile(filePath)) {
+    // test, if file is an experiment file and not in the template folder
+    if (!isExperimentFile(filePath) && getRepoNameFromPath(filePath) != "ELOtemplates") {
         // maybe it's an image?!
         QMimeDatabase mimeDB;
         QMimeType mime = mimeDB.mimeTypeForFile(filePath);
@@ -183,27 +183,37 @@ void ELODocumentHandler::deleteFile(const QString &filePath)
 void ELODocumentHandler::updateMetadata(QJsonObject obj)
 {
     if (obj.contains("forNewFile")) { // create new file and add metadata
-        int experimentNumber = obj.value("experiment number").toString().remove(QRegularExpression("[^\\d]")).toInt();
-        QString path = currentDirectory + QDir::separator() + obj.value("experiment number").toString() + ".html";
-        QFile newFile(path);
-        QFileInfo finfo(newFile);
-        newFile.open(QIODevice::WriteOnly);
-        QString templateName = obj.value("template").toString();
-        if (!templateName.isEmpty()) {
-            templateName = templateName.left(templateName.length()-6);
-            QFile templateHTML(TheELOSettings::Instance()->getWorkingDir() + QDir::separator() + "ELOtemplates" + QDir::separator() + templateName + ".html");
-            templateHTML.open(QIODevice::ReadOnly);
-            QString tmplt = templateHTML.readAll();
-            templateHTML.close();
-            tmplt = tmplt.replace("{{experiment number}}", obj.value("experiment number").toString());
-            tmplt = tmplt.replace("{{date}}", obj.value("date").toString());
-            tmplt = tmplt.replace("{{title}}", obj.value("title").toString());
-            newFile.write("<!-- {} -->\n");
-            newFile.write(tmplt.toUtf8());
+        QString path;
+        QFile newFile;
+        if (currentDirectory.endsWith("ELOtemplates")) {
+            // a new template should be created
+            path = currentDirectory + QDir::separator() + obj.value("title").toString() + ".html";
+            newFile.setFileName(path);
+            newFile.open(QIODevice::WriteOnly);
+            newFile.write("<html></html>");
+            newFile.close();
         } else {
-            newFile.write("<!-- {} -->\n<html></html>");
+            path = currentDirectory + QDir::separator() + obj.value("experiment number").toString() + ".html";
+            newFile.setFileName(path);
+            newFile.open(QIODevice::WriteOnly);
+            QString templateName = obj.value("template").toString();
+            if (!templateName.isEmpty()) {
+                templateName = templateName.remove(".tmplt").remove(".html");
+                QFile templateHTML(TheELOSettings::Instance()->getWorkingDir() + QDir::separator() + "ELOtemplates" + QDir::separator() + templateName + ".html");
+                templateHTML.open(QIODevice::ReadOnly);
+                QString tmplt = templateHTML.readAll();
+                templateHTML.close();
+                tmplt = tmplt.replace("{{experiment number}}", obj.value("experiment number").toString());
+                tmplt = tmplt.replace("{{date}}", obj.value("date").toString());
+                tmplt = tmplt.replace("{{title}}", obj.value("title").toString());
+                newFile.write("<!-- {} -->\n");
+                newFile.write(tmplt.toUtf8());
+            } else {
+                newFile.write("<!-- {} -->\n<html></html>");
+            }
+            newFile.close();
         }
-        newFile.close();
+        QFileInfo finfo(newFile);
         ELODocument *doc = new ELODocument(path, static_cast<permissionMode>(user->getRepos().value(getRepoNameFromPath(currentDirectory)).toObject().value("permissions").toInt()));
         obj.remove("forNewFile");
         doc->setMetadata(obj);
@@ -213,9 +223,13 @@ void ELODocumentHandler::updateMetadata(QJsonObject obj)
         documents.append(doc);
         currentDocument = doc; // the new document is the current document
 
-        QJsonObject repoSettings = user->getRepos().value(currentDocument->getRepoName()).toObject().value("settings").toObject();
-        repoSettings.insert("lastExperimentNumber", experimentNumber);
-        user->updateRepoSettings(repoSettings, currentDocument->getRepoName());
+        if (!currentDirectory.endsWith("ELOtemplates")) {
+            // only update reposetting if ithe new file is not inside the ELOtemplates repo
+            int experimentNumber = obj.value("experiment number").toString().remove(QRegularExpression("[^\\d]")).toInt();
+            QJsonObject repoSettings = user->getRepos().value(currentDocument->getRepoName()).toObject().value("settings").toObject();
+            repoSettings.insert("lastExperimentNumber", experimentNumber);
+            user->updateRepoSettings(repoSettings, currentDocument->getRepoName());
+        }
 
         emit filePermissionsChanged(static_cast<permissionMode>(user->getRepos().value(currentDocument->getRepoName()).toObject().value("permissions").toInt()));
         emit newFileCreatedView(doc->getWebView());

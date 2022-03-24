@@ -539,7 +539,7 @@ QString ELOGitProcess::doInitialCommit(const QString &repoName)
         out << "{" << Qt::endl;
         out << "\"lastExperimentNumber\": 0," << Qt::endl;
         out << "\"prefix\": \"\"," << Qt::endl;
-        out << "\"template\": \"AGSi.tmplt\"" << Qt::endl;
+        out << "\"template\": \"AGSi\"" << Qt::endl;
         out << "}" << Qt::endl;
         out.flush();
         f.close();

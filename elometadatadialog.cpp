@@ -120,7 +120,7 @@ void ELOMetadataDialog::reject()
 
 void ELOMetadataDialog::openTemplate()
 {
-    QString dgl = QFileDialog::getOpenFileName(this, tr("open template"), settings->getWorkingDir() + QDir::separator() + "ELOtemplates", tr("Templates (*.tmplt)"));
+    QString dgl = QFileDialog::getOpenFileName(this, tr("open template"), settings->getWorkingDir() + QDir::separator() + "ELOtemplates", tr("HTML templates (*.html)"));
     if(!dgl.isEmpty()) {
         dgl = dgl.remove(settings->getWorkingDir() + QDir::separator() + "ELOtemplates" + QDir::separator());
         templateLabel->setText(dgl);

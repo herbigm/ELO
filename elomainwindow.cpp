@@ -396,7 +396,7 @@ void ELOMainWindow::userLoaded(bool success)
         statusBar()->showMessage(tr("user loaded succesfully"),2000);
         QJsonObject repos = user->getRepos();
         QStringList repoNames = repos.keys();
-        std::sort(repoNames.begin(), repoNames.end(), [repos](const QString &a, const QString &b) -> bool { return repos.value(a).toObject().value("permissions").toInt() > repos.value(b).toObject().value("permissions").toInt();});
+        std::sort(repoNames.begin(), repoNames.end(), [repos](const QString &a, const QString &b) -> bool { if (a == "ELOtemplates") { return -99999; } if (b == "ELOtemplates") { return 99999; } return repos.value(a).toObject().value("permissions").toInt() > repos.value(b).toObject().value("permissions").toInt();});
         qDebug() << repoNames;
         foreach (QString repoName, repoNames) {
             QDir dir(settings->getWorkingDir() + QDir::separator() + repoName);
@@ -414,7 +414,8 @@ void ELOMainWindow::userLoaded(bool success)
                     QMessageBox::warning(this, tr("could not clone repository"), tr("The repository ") + repoName + tr(" could not be clones due to missing connection to the server."));
                 }
             }
-            if(repoName != "ELOtemplates") {
+            qDebug() << repoName;
+            if((repoName != "ELOtemplates") || ((repoName == "ELOtemplates") && (static_cast<permissionMode>(repos.value(repoName).toObject().value("permissions").toInt()) == ReadWrite))) {
                 fileView->addView(repoName, settings->getWorkingDir() + QDir::separator() + repoName, static_cast<permissionMode>(repos.value(repoName).toObject().value("permissions").toInt()));
                 linkDialog->insertToModel(settings->getWorkingDir() + QDir::separator() + repoName);
             }

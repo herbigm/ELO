@@ -47,11 +47,12 @@ ELODocument::ELODocument(const QString &filePath, permissionMode permissions)
 
     if (metaData.contains("template")) {
         QString templateName = metaData.value("template").toString();
-        templateName = templateName.left(templateName.length()-6);
+        templateName = templateName.remove(".tmplt").remove(".html");
         QFile cssFile2(TheELOSettings::Instance()->getWorkingDir() + QDir::separator() + "ELOtemplates" + QDir::separator() + templateName + ".css");
-        cssFile2.open(QIODevice::ReadOnly);
-        css += "\n" + cssFile2.readAll();
-        cssFile2.close();
+        if (cssFile2.open(QIODevice::ReadOnly)) {
+            css += "\n" + cssFile2.readAll();
+            cssFile2.close();
+        }
     }
 
     webView->page()->setHtml(editorHTML.replace("{{Style}}", css).replace("{{CONTENT}}", experimentHTML), QUrl::fromLocalFile(fileInfo.filePath()));
@@ -100,10 +101,16 @@ void ELODocument::printToPdf(const QString &path)
 
 void ELODocument::saveDocument(const QString content)
 {
-    QString fileContent = "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\" />\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>{{TITLE}}</title>\n</head>\n<body>\n{{CONTENT}}\n</body>\n</html>";
-    fileContent = fileContent.replace("{{TITLE}}", metaData.value("title").toString());
-    fileContent = fileContent.replace("{{CONTENT}}", content);
-    fileContent = "<!-- " + QJsonDocument(metaData).toJson(QJsonDocument::Compact) + " -->\n" + fileContent;
+    QString fileContent;
+    if (repoName != "ELOtemplates") {
+        fileContent = "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\" />\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>{{TITLE}}</title>\n</head>\n<body>\n{{CONTENT}}\n</body>\n</html>";
+        fileContent = fileContent.replace("{{TITLE}}", metaData.value("title").toString());
+        fileContent = fileContent.replace("{{CONTENT}}", content);
+        fileContent = "<!-- " + QJsonDocument(metaData).toJson(QJsonDocument::Compact) + " -->\n" + fileContent;
+    } else {
+        fileContent = "<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\" />\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<title>{{experiment number}}</title>\n</head>\n<body>\n{{CONTENT}}\n</body>\n</html>";
+        fileContent = fileContent.replace("{{CONTENT}}", content);
+    }
 
     QFile f(fileInfo.filePath());
     if (f.open(QIODevice::WriteOnly)) {
