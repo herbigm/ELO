@@ -109,7 +109,10 @@ void ELOLinkDialog::accept()
         QModelIndex index = internalView->currentIndex();
         QString pathText = qobject_cast<ELOFileModel *>(internalView->model())->itemFromIndex(index)->accessibleDescription();
         QString proceededPath;
-        proceededPath = "php/file-getter.php?path=" + pathText.replace(settings->getWorkingDir(), "") + "&internal=true";
+        pathText = pathText.replace(settings->getWorkingDir(), "");
+        if (pathText.startsWith("/"))
+            pathText = pathText.mid(1);
+        proceededPath = "file-getter.php?path=" + pathText + "&internal=true";
         // emit to insert link!
         emit setLinkRequest(linkText, proceededPath);
     } else if (tabWidget->currentIndex() == 1) { // external link
@@ -123,7 +126,10 @@ void ELOLinkDialog::accept()
         QVector<PathShortcut> pathShortcuts = settings->getPathShortCuts();
         for (int i = 0; i < pathShortcuts.length(); i++) {
             if (pathText.startsWith(pathShortcuts[i].Path)) {
-                proceededPath = "php/file-getter.php?path=" + pathText.replace(pathShortcuts[i].Path, pathShortcuts[i].Name) + "&external=true";
+                pathText = pathText.replace(pathShortcuts[i].Path, pathShortcuts[i].Name);
+                if (pathText.startsWith("/"))
+                    pathText = pathText.mid(1);
+                proceededPath = "file-getter.php?path=" + pathText + "&external=true";
                 break;
             }
         }
@@ -131,7 +137,10 @@ void ELOLinkDialog::accept()
             // the path is NOT inside any shortcut directory
             // maybe is is an internal link?
             if (pathText.startsWith(settings->getWorkingDir())) {
-                proceededPath = "php/file-getter.php?path=" + pathText.replace(settings->getWorkingDir(), "") + "&internal=true";
+                pathText = pathText.replace(settings->getWorkingDir(), "");
+                if (pathText.startsWith("/"))
+                    pathText = pathText.mid(1);
+                proceededPath = "file-getter.php?path=" + pathText + "&internal=true";
                 QMessageBox::information(this, tr("Found internal link"), tr("The given path is a internal path and will be handled as so."));
             }
         }
@@ -139,7 +148,7 @@ void ELOLinkDialog::accept()
             // it is an external path. Ask user to continue
             QMessageBox::StandardButton btn = QMessageBox::question(this, tr("External file"), tr("The given path is neither in the working directory nor in any yet set shortcut directory. Such links are not reliable on different systems. Would you like to continue?"));
             if (btn == QMessageBox::Yes) {
-                proceededPath = "php/file-getter.php?path=" + pathText + "&external=true";
+                proceededPath = "file-getter.php?path=" + pathText + "&external=true";
             } else {
                 return;
             }

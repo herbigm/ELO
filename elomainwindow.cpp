@@ -321,8 +321,9 @@ void ELOMainWindow::selectCurrentDocument(int tabIndex)
 
 void ELOMainWindow::closeTab(int tabIndex)
 {
-    tabWidget->setCurrentIndex(tabIndex);
-    documentHandler->requestClosingCurrentDocument(); // closing the current document deletes the ELOWebView, so the Tab is closed automatically, befor closing, modification is checkt and saving asked
+    //tabWidget->setCurrentIndex(tabIndex);
+    //documentHandler->requestClosingCurrentDocument(); // closing the current document deletes the ELOWebView, so the Tab is closed automatically, befor closing, modification is checkt and saving asked
+    documentHandler->requestClosingDocument(qobject_cast<ELOWebView *>(tabWidget->widget(tabIndex)));
 }
 
 void ELOMainWindow::renameTab(ELOWebView *view, const QString &newTitle)

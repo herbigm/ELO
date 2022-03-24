@@ -100,7 +100,7 @@ void ELOAssociatedFileView::onFileDblClicked()
         // open the file with system defaults
         QDesktopServices::openUrl(QUrl::fromLocalFile(filePath));
     } else if (msgBox.clickedButton() == insertLinkButton) {
-        emit insertLinkRequest(finfo.fileName(), "php/file-getter.php?path=/" + QDir(settings->getWorkingDir()).relativeFilePath(filePath) + "&internal=true");
+        emit insertLinkRequest(finfo.fileName(), "file-getter.php?path=" + QDir(settings->getWorkingDir()).relativeFilePath(filePath) + "&internal=true");
     } else if (msgBox.clickedButton() == insertImageButton) {
         emit insertImageRequest(finfo.filePath());
     }

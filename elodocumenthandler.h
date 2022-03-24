@@ -24,7 +24,7 @@ public:
     ~ELODocumentHandler();
 
     ELOWebView *openFile(const QString &filePath);
-    void requestClosingCurrentDocument();
+    void requestClosingDocument(ELOWebView *widget);
 
     // getter functions
     const QString &getCurrentTitle() const;
@@ -63,8 +63,8 @@ private:
     ELOUser *user;
 
     bool isExperimentFile(const QString &filePath);
-    void saveAndCloseCurrentDocument(bool modified);
-    void closeCurrentDocument();
+    void saveAndCloseDocument(ELODocument * document, bool modified);
+    void closeDocument(ELODocument* document);
     QString getRepoNameFromPath(QString path);
 
 signals:

@@ -256,12 +256,14 @@ void ELOUser::createRepoPermissions(const QString &gitoliteOutput)
     }
     repos = rps;
     saveUserFile();
-    qDebug() << repos;
 }
 
 void ELOUser::updateRepoSettings(QJsonObject repoSettings, const QString &repoName)
 {
-    repos.value(repoName).toObject().insert("settings", repoSettings);
+    QJsonObject repo;
+    repo.insert("permissions",  repos.value(repoName).toObject().value("permissions"));
+    repo.insert("settings", repoSettings);
+    repos.insert(repoName, repo);
     QFile f(settings->getWorkingDir() + QDir::separator() + repoName + QDir::separator() + ".ELOconfig");
     f.open(QIODevice::WriteOnly);
     QJsonDocument repooptions(repoSettings);

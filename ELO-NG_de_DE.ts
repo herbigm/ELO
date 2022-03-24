@@ -67,7 +67,7 @@
         <translation>Datei als Bild einfügen</translation>
     </message>
     <message>
-        <location filename="elodocumenthandler.cpp" line="291"/>
+        <location filename="elodocumenthandler.cpp" line="298"/>
         <source>Save modified file?</source>
         <translation>Änderungen speichern?</translation>
     </message>
@@ -381,52 +381,52 @@ You may use shortcuts to access these files.</source>
         <translation>Bitte geben Sie einen Text für die Verknüpfung ein.</translation>
     </message>
     <message>
-        <location filename="elolinkdialog.cpp" line="119"/>
+        <location filename="elolinkdialog.cpp" line="122"/>
         <source>No path given</source>
         <translation>Kein Pfad angegeben</translation>
     </message>
     <message>
-        <location filename="elolinkdialog.cpp" line="119"/>
+        <location filename="elolinkdialog.cpp" line="122"/>
         <source>Please choose a path as link destination.</source>
         <translation>Bitte geben Sie den Zielpfad für die Verknüpfung ein.</translation>
     </message>
     <message>
-        <location filename="elolinkdialog.cpp" line="135"/>
+        <location filename="elolinkdialog.cpp" line="144"/>
         <source>Found internal link</source>
         <translation>Interne Verknüpfung gefunden</translation>
     </message>
     <message>
-        <location filename="elolinkdialog.cpp" line="135"/>
+        <location filename="elolinkdialog.cpp" line="144"/>
         <source>The given path is a internal path and will be handled as so.</source>
         <translation>Der eingegebene Pfad gehört zu einer interenn Datei und wird so behandelt.</translation>
     </message>
     <message>
-        <location filename="elolinkdialog.cpp" line="140"/>
+        <location filename="elolinkdialog.cpp" line="149"/>
         <source>External file</source>
         <translation>Externe Datei</translation>
     </message>
     <message>
-        <location filename="elolinkdialog.cpp" line="140"/>
+        <location filename="elolinkdialog.cpp" line="149"/>
         <source>The given path is neither in the working directory nor in any yet set shortcut directory. Such links are not reliable on different systems. Would you like to continue?</source>
         <translation>Der angegebene Pfad ist nicht im Arbeitsverzeichnis oder in den Abkürzungen. Solche Pfade sind nicht auf andere Geräte übertragbar. Wollen Sie damit fortfahren?</translation>
     </message>
     <message>
-        <location filename="elolinkdialog.cpp" line="153"/>
+        <location filename="elolinkdialog.cpp" line="162"/>
         <source>No url given</source>
         <translation>Keine URL angegeben</translation>
     </message>
     <message>
-        <location filename="elolinkdialog.cpp" line="153"/>
+        <location filename="elolinkdialog.cpp" line="162"/>
         <source>Please fill in an url.</source>
         <translation>Bitte geben Sie die URL ein.</translation>
     </message>
     <message>
-        <location filename="elolinkdialog.cpp" line="181"/>
+        <location filename="elolinkdialog.cpp" line="190"/>
         <source>Choose a file</source>
         <translation>Datei auswählen</translation>
     </message>
     <message>
-        <location filename="elolinkdialog.cpp" line="190"/>
+        <location filename="elolinkdialog.cpp" line="199"/>
         <source>Choose a directory</source>
         <translation>Verzeichnis auswählen</translation>
     </message>
@@ -586,162 +586,162 @@ You may use shortcuts to access these files.</source>
         <translation>Dieses programm wurde vo Marcus Herbig geschrieben.</translation>
     </message>
     <message>
-        <location filename="elomainwindow.cpp" line="340"/>
-        <location filename="elomainwindow.cpp" line="342"/>
-        <location filename="elomainwindow.cpp" line="371"/>
-        <location filename="elomainwindow.cpp" line="373"/>
+        <location filename="elomainwindow.cpp" line="341"/>
+        <location filename="elomainwindow.cpp" line="343"/>
+        <location filename="elomainwindow.cpp" line="372"/>
+        <location filename="elomainwindow.cpp" line="374"/>
         <source>UserFile</source>
         <translation>Benutzerdatei</translation>
     </message>
     <message>
-        <location filename="elomainwindow.cpp" line="340"/>
-        <location filename="elomainwindow.cpp" line="342"/>
-        <location filename="elomainwindow.cpp" line="371"/>
-        <location filename="elomainwindow.cpp" line="373"/>
+        <location filename="elomainwindow.cpp" line="341"/>
+        <location filename="elomainwindow.cpp" line="343"/>
+        <location filename="elomainwindow.cpp" line="372"/>
+        <location filename="elomainwindow.cpp" line="374"/>
         <source>All files (*)</source>
         <translation>Alle Dateien (*)</translation>
     </message>
     <message>
-        <location filename="elomainwindow.cpp" line="349"/>
+        <location filename="elomainwindow.cpp" line="350"/>
         <source>Password required</source>
         <translation>Passwort benötigt</translation>
     </message>
     <message>
-        <location filename="elomainwindow.cpp" line="349"/>
+        <location filename="elomainwindow.cpp" line="350"/>
         <source>Password</source>
         <translation>Passwort</translation>
     </message>
     <message>
-        <location filename="elomainwindow.cpp" line="358"/>
-        <location filename="elomainwindow.cpp" line="453"/>
+        <location filename="elomainwindow.cpp" line="359"/>
+        <location filename="elomainwindow.cpp" line="454"/>
         <source>wrong password</source>
         <translation>falsches Passwort</translation>
     </message>
     <message>
-        <location filename="elomainwindow.cpp" line="358"/>
-        <location filename="elomainwindow.cpp" line="453"/>
+        <location filename="elomainwindow.cpp" line="359"/>
+        <location filename="elomainwindow.cpp" line="454"/>
         <source>The entered password is wrong. Aborting!</source>
         <translation>Das eingegebene Passwort ist falsch. Bereche ab!</translation>
     </message>
     <message>
-        <location filename="elomainwindow.cpp" line="362"/>
-        <location filename="elomainwindow.cpp" line="422"/>
+        <location filename="elomainwindow.cpp" line="363"/>
+        <location filename="elomainwindow.cpp" line="423"/>
         <source>error loading user</source>
         <translation>Fehler beim Laden des Benutzers</translation>
     </message>
     <message>
-        <location filename="elomainwindow.cpp" line="395"/>
+        <location filename="elomainwindow.cpp" line="396"/>
         <source>user loaded succesfully</source>
         <translation>Benutzer erfolgreich geladen</translation>
     </message>
     <message>
-        <location filename="elomainwindow.cpp" line="404"/>
+        <location filename="elomainwindow.cpp" line="405"/>
         <source>pulling ...</source>
         <translation>lade herunter ...</translation>
     </message>
     <message>
-        <location filename="elomainwindow.cpp" line="409"/>
+        <location filename="elomainwindow.cpp" line="410"/>
         <source>cloning ...</source>
         <translation>klone ...</translation>
     </message>
     <message>
-        <location filename="elomainwindow.cpp" line="413"/>
+        <location filename="elomainwindow.cpp" line="414"/>
         <source>could not clone repository</source>
         <translation>Das Repositorium konnte nicht geklont werden</translation>
     </message>
     <message>
-        <location filename="elomainwindow.cpp" line="413"/>
+        <location filename="elomainwindow.cpp" line="414"/>
         <source>The repository </source>
         <translation>Das Repositorium </translation>
     </message>
     <message>
-        <location filename="elomainwindow.cpp" line="413"/>
+        <location filename="elomainwindow.cpp" line="414"/>
         <source> could not be clones due to missing connection to the server.</source>
         <translation> konnte wegen fehlender Verbindung zum Server nicht geklont werden.</translation>
     </message>
     <message>
-        <location filename="elomainwindow.cpp" line="433"/>
+        <location filename="elomainwindow.cpp" line="434"/>
         <source>Old password required</source>
         <translation>Altes Passwort benötigt</translation>
     </message>
     <message>
-        <location filename="elomainwindow.cpp" line="433"/>
+        <location filename="elomainwindow.cpp" line="434"/>
         <source>Old password</source>
         <translation>Altes Passwort</translation>
     </message>
     <message>
-        <location filename="elomainwindow.cpp" line="437"/>
         <location filename="elomainwindow.cpp" line="438"/>
+        <location filename="elomainwindow.cpp" line="439"/>
         <source>New password required</source>
         <translation>Neues Passwort benötigt</translation>
     </message>
     <message>
-        <location filename="elomainwindow.cpp" line="437"/>
+        <location filename="elomainwindow.cpp" line="438"/>
         <source>new password</source>
         <translation>Neues Passwort</translation>
     </message>
     <message>
-        <location filename="elomainwindow.cpp" line="438"/>
+        <location filename="elomainwindow.cpp" line="439"/>
         <source>repeat new password</source>
         <translation>Wiederholung des neuen Passwortes</translation>
     </message>
     <message>
-        <location filename="elomainwindow.cpp" line="443"/>
+        <location filename="elomainwindow.cpp" line="444"/>
         <source>Where to save the new user file?</source>
         <translation>Wohin soll die neue Benutzerdatei gespeichert werden?</translation>
     </message>
     <message>
-        <location filename="elomainwindow.cpp" line="446"/>
+        <location filename="elomainwindow.cpp" line="447"/>
         <source>Password changed</source>
         <translation>Passwort geändert</translation>
     </message>
     <message>
-        <location filename="elomainwindow.cpp" line="446"/>
+        <location filename="elomainwindow.cpp" line="447"/>
         <source>Your Password is changed now.</source>
         <translation>Ihr Passwort wurde nun geändert.</translation>
     </message>
     <message>
-        <location filename="elomainwindow.cpp" line="449"/>
+        <location filename="elomainwindow.cpp" line="450"/>
         <source>Verification failed</source>
         <translation>Verifikation fehlgeschagen</translation>
     </message>
     <message>
-        <location filename="elomainwindow.cpp" line="449"/>
+        <location filename="elomainwindow.cpp" line="450"/>
         <source>The new passwords were not the same. Aborting!</source>
         <translation>Die neuen Passwörter waren nicht identisch. Breche ab!</translation>
     </message>
     <message>
-        <location filename="elomainwindow.cpp" line="492"/>
+        <location filename="elomainwindow.cpp" line="493"/>
         <source>ELO repo settings for: </source>
         <translation>ELO-Repositoriumseinstellungen für: </translation>
     </message>
     <message>
-        <location filename="elomainwindow.cpp" line="522"/>
+        <location filename="elomainwindow.cpp" line="523"/>
         <source>No connection to server</source>
         <translation>Keine Verbindung zu Server</translation>
     </message>
     <message>
-        <location filename="elomainwindow.cpp" line="522"/>
+        <location filename="elomainwindow.cpp" line="523"/>
         <source>Cannot connect to the server, you&apos;re working offline. Be carefull with the upsync of your changes! ELO cannot handle file conflicts(yet).</source>
         <translation>Es konnte keine Verbindung zum Server hergestellt werden. Sie arbeiten jetzt offline. Seien Sie vorsichtig mit dem Hochladen von Änderungen! ELO kann (noch) keine Dateikonflikte lösen.</translation>
     </message>
     <message>
-        <location filename="elomainwindow.cpp" line="538"/>
+        <location filename="elomainwindow.cpp" line="539"/>
         <source>Select Image to Insert</source>
         <translation>Bild zum Einfügen auswählen</translation>
     </message>
     <message>
-        <location filename="elomainwindow.cpp" line="538"/>
+        <location filename="elomainwindow.cpp" line="539"/>
         <source>Images (*.png *.jpg *.bmp *.gif *.svg)</source>
         <translation>Bilder (*.png *.jpg *bmp *gif *.svg)</translation>
     </message>
     <message>
-        <location filename="elomainwindow.cpp" line="550"/>
+        <location filename="elomainwindow.cpp" line="551"/>
         <source>Select file location</source>
         <translation>Speicherort wählen</translation>
     </message>
     <message>
-        <location filename="elomainwindow.cpp" line="550"/>
+        <location filename="elomainwindow.cpp" line="551"/>
         <source>PDF (*.pdf)</source>
         <translation>PDF (*.pdf)</translation>
     </message>

@@ -47,7 +47,7 @@ ELOWebView *ELODocumentHandler::openFile(const QString &filePath)
             // open the file with system defaults
             QDesktopServices::openUrl(QUrl::fromLocalFile(filePath));
         } else if (msgBox.clickedButton() == insertLinkButton) {
-            insertLink(finfo.fileName(), "php/file-getter.php?path=/" + QDir(settings->getWorkingDir()).relativeFilePath(filePath) + "&internal=true");
+            insertLink(finfo.fileName(), "file-getter.php?path=" + QDir(settings->getWorkingDir()).relativeFilePath(filePath) + "&internal=true");
         } else if (msgBox.clickedButton() == insertImageButton) {
             insertImage(finfo.filePath());
         }
@@ -198,6 +198,7 @@ void ELODocumentHandler::updateMetadata(QJsonObject obj)
             tmplt = tmplt.replace("{{experiment number}}", obj.value("experiment number").toString());
             tmplt = tmplt.replace("{{date}}", obj.value("date").toString());
             tmplt = tmplt.replace("{{title}}", obj.value("title").toString());
+            newFile.write("<!-- {} -->\n");
             newFile.write(tmplt.toUtf8());
         } else {
             newFile.write("<!-- {} -->\n<html></html>");
@@ -232,6 +233,7 @@ void ELODocumentHandler::startFileCreation(const QString &parentPath)
         setCurrentDirectory(parentPath);
 
     QJsonObject repoSettings = user->getRepos().value(getRepoNameFromPath(currentDirectory)).toObject().value("settings").toObject();
+
     QJsonObject obj;
     obj.insert("author", user->getName());
     obj.insert("date", QDate::currentDate().toString("yyyy-MM-dd"));
@@ -271,47 +273,51 @@ bool ELODocumentHandler::isExperimentFile(const QString &filePath)
     return false;
 }
 
-void ELODocumentHandler::requestClosingCurrentDocument()
-{
-    if (currentDocument != nullptr) {
-        if (static_cast<permissionMode>(user->getRepos().value(currentDocument->getRepoName()).toObject().value("permissions").toInt()) == ReadWrite) {
-            connect(currentDocument, &ELODocument::wasModified, this, &ELODocumentHandler::saveAndCloseCurrentDocument);
-            currentDocument->checkModified();
-        } else {
-            closeCurrentDocument();
-        }
-    }
-}
-
-void ELODocumentHandler::saveAndCloseCurrentDocument(bool modified)
-{
-    if (!modified) {
-        closeCurrentDocument();
-    } else {
-        QMessageBox::StandardButton btn = QMessageBox::question(nullptr, tr("Save modified file?"), tr(QString("The file %1 was modified. Do you like to save the modificated file?").arg(currentDocument->getFileTitle()).toUtf8()));
-        if (btn == QMessageBox::Yes) {
-            connect(currentDocument, &ELODocument::wasSaved, this, &ELODocumentHandler::closeCurrentDocument);
-            currentDocument->startSaveing();
-        } else {
-            closeCurrentDocument();
-        }
-    }
-}
-
-void ELODocumentHandler::closeCurrentDocument()
+void ELODocumentHandler::requestClosingDocument(ELOWebView *widget)
 {
     for (int i = 0; i < documents.length(); i++) {
-        if (documents[i] == currentDocument) {
+        if (documents[i]->getWebView() == widget) {
+            // this is the document which should be closed
+            if (static_cast<permissionMode>(user->getRepos().value(documents[i]->getRepoName()).toObject().value("permissions").toInt()) == ReadWrite) {
+                ELODocument *document = documents[i];
+                connect(documents[i], &ELODocument::wasModified, this, [this, document](bool modified) { saveAndCloseDocument(document, modified); });
+                documents[i]->checkModified();
+            } else {
+                closeDocument(documents[i]);
+            }
+            break;
+        }
+    }
+}
+
+void ELODocumentHandler::saveAndCloseDocument(ELODocument *document, bool modified)
+{
+    if (!modified) {
+        closeDocument(document);
+    } else {
+        QMessageBox::StandardButton btn = QMessageBox::question(nullptr, tr("Save modified file?"), tr(QString("The file %1 was modified. Do you like to save the modificated file?").arg(document->getFileTitle()).toUtf8()));
+        if (btn == QMessageBox::Yes) {
+            connect(document, &ELODocument::wasSaved, this, [this, document] { closeDocument(document); });
+            document->startSaveing();
+        } else {
+            closeDocument(document);
+        }
+    }
+}
+
+void ELODocumentHandler::closeDocument(ELODocument *document)
+{
+    for (int i = 0; i < documents.length(); i++) {
+        if (documents[i] == document) {
             // this is the current document
             documents.remove(i);
-            delete currentDocument;
+            delete document;
             break;
         }
     }
     if (documents.length() > 0) {
-        currentDocument = documents[0];
         if (closeAll) {
-            requestClosingCurrentDocument();
+            requestClosingDocument(documents[0]->getWebView());
         }
     } else {
         emit allClosed();
@@ -335,16 +341,16 @@ QString ELODocumentHandler::getRepoNameFromPath(QString path)
 void ELODocumentHandler::closeAllDocuments()
 {
     closeAll = true;
-    requestClosingCurrentDocument();
+    requestClosingDocument(documents[0]->getWebView());
 }
 
 void ELODocumentHandler::performOpenFileRequest(const QUrl &url)
 {
     qDebug() << "file request for" << url;
     QString path = url.toString();
-    if (path.contains("php/file-getter.php") && path.endsWith("&internal=true")) {
+    if (path.contains("file-getter.php") && path.endsWith("&internal=true")) {
         // internal file
-        int index = path.indexOf("php/file-getter.php?path=") + QString("php/file-getter.php?path=").length();
+        int index = path.indexOf("file-getter.php?path=") + QString("file-getter.php?path=").length();
         path = path.replace(path.left(index), settings->getWorkingDir());
         path = path.remove("&internal=true");
         if (isExperimentFile(path)) {
@@ -352,8 +358,8 @@ void ELODocumentHandler::performOpenFileRequest(const QUrl &url)
         } else {
             QDesktopServices::openUrl(QUrl::fromLocalFile(path));
         }
-    } else if (path.contains("php/file-getter.php") && path.endsWith("&external=true")) {
-        int index = path.indexOf("php/file-getter.php?path=") + QString("php/file-getter.php?path=").length();
+    } else if (path.contains("file-getter.php") && path.endsWith("&external=true")) {
+        int index = path.indexOf("file-getter.php?path=") + QString("file-getter.php?path=").length();
         path = path.remove(path.left(index));
         path = path.remove("&external=true");
         // replace shortcuts

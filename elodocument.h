@@ -56,7 +56,7 @@ private:
     QString lastSavedContent;
 
 signals:
-    void wasModified(bool);
+    void wasModified(bool modified);
     void wasSaved();
 };
 
