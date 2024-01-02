@@ -242,9 +242,13 @@ void ELOUser::createRepoPermissions(const QString &gitoliteOutput)
                 repo.insert("permissions", ReadOnly);
             } else if(match.captured(1).trimmed() == "R W") {
                 QFile f(settings->getWorkingDir() + QDir::separator() + repoName + QDir::separator() + ".ELOconfig");
-                f.open(QIODevice::ReadOnly);
-                QJsonDocument repooptions = QJsonDocument::fromJson(f.readAll());
-                f.close();
+                QJsonDocument repooptions;
+                if (f.open(QIODevice::ReadOnly)) {
+                    repooptions = QJsonDocument::fromJson(f.readAll());
+                    f.close();
+                } else {
+                    repooptions = QJsonDocument::fromJson("{}");
+                }
                 QJsonObject repooptionsobject = repooptions.object();
                 repo.insert("settings", repooptionsobject);
                 repo.insert("permissions", ReadWrite);

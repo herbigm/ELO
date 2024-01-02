@@ -11,8 +11,9 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 COMPONENTS Widgets LinguistTools WebEngineWidgets REQUIRED)
-find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Widgets LinguistTools WebEngineWidgets PrintSupport REQUIRED)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools WebEngineWidgets PrintSupport)
+
 if (NOT ${CMAKE_HOST_SYSTEM_NAME} MATCHES "Linux")
     find_package(Libssh2 CONFIG REQUIRED)
     find_package(unofficial-git2 CONFIG REQUIRED)
@@ -96,7 +97,6 @@ else()
     qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 endif()
 
-qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 qt_add_lupdate(ELO-NG TS_FILES ${TS_FILES})
 qt_add_lrelease(ELO-NG
     TS_FILES ${TS_FILES}

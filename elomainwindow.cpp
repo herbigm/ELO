@@ -396,7 +396,7 @@ void ELOMainWindow::userLoaded(bool success)
         statusBar()->showMessage(tr("user loaded succesfully"),2000);
         QJsonObject repos = user->getRepos();
         QStringList repoNames = repos.keys();
-        std::sort(repoNames.begin(), repoNames.end(), [repos](const QString &a, const QString &b) -> bool { if (a == "ELOtemplates") { return -99999; } if (b == "ELOtemplates") { return 99999; } return repos.value(a).toObject().value("permissions").toInt() > repos.value(b).toObject().value("permissions").toInt();});
+        std::sort(repoNames.begin(), repoNames.end(), [repos](const QString &a, const QString &b) -> bool { if (a == QString("ELOtemplates")) { return -99999; } if (b == QString("ELOtemplates")) { return 99999; } return repos.value(a).toObject().value("permissions").toInt() > repos.value(b).toObject().value("permissions").toInt();});
         qDebug() << repoNames;
         foreach (QString repoName, repoNames) {
             QDir dir(settings->getWorkingDir() + QDir::separator() + repoName);
